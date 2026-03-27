@@ -1,0 +1,3 @@
+id,lat,lon,moisture,row_raw,col_raw,row_snap,col_snap,snap_distance_px,roi,rmin,rmax,cmin,cmax,finite_bands
+1,43.1412457,-77.5027518,0.63,2907,2322,2907,2322,0.0,5,2905,2909,2320,2324,426
+2,43.1414522,-77.5032303,0.172,2883,2284,2883,2284,0.0,5,2881,2885,2282,2286,426

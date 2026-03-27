@@ -18,6 +18,8 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import h5py
+from src.preprocess import clean_spectrum, spectrum_for_plot
+
 
 from src.config import DATA_RAW, FIGURES, REFLECTANCE_PATH, WAVELENGTH_PATH
 from src.io_hyperspectral import latlon_to_rowcol, read_map_info
@@ -282,24 +284,22 @@ def main() -> None:
         "max=", float(np.nanmax(spec)),
     )
 
+        # --------------------------------------------------------
+    # Spectral cleaning / bad-band masking
     # --------------------------------------------------------
-    # Atmospheric absorption handling
-    # --------------------------------------------------------
-    bad = (
-        ((wl > 1340) & (wl < 1450))
-        | ((wl > 1800) & (wl < 1950))
-        | (wl > 2400)
+    wl_plot, spec_plot, hidden_mask = spectrum_for_plot(
+        wl,
+        spec,
+        include_narrow_bad_bands=True,
+        max_reflectance=1.2,
     )
 
-    # Plot arrays with gaps (plotting only)
-    spec_plot = spec.copy()
-    spec_plot[bad] = np.nan
-    spec_plot[spec_plot > 1.2] = np.nan
-
-    # Analysis-clean arrays (bands removed)
-    wl_clean = wl[~bad]
-    spec_clean = spec[~bad].copy()
-    spec_clean[spec_clean > 1.2] = np.nan
+    wl_clean, spec_clean, keep_mask = clean_spectrum(
+        wl,
+        spec,
+        include_narrow_bad_bands=True,
+        max_reflectance=1.2,
+    )
 
     good_clean = np.isfinite(wl_clean) & np.isfinite(spec_clean)
 
@@ -317,14 +317,15 @@ def main() -> None:
     plt.figure(figsize=(10, 4.8))
     plt.plot(wl, spec_plot, linewidth=2.2)
 
-    for a, b in [(1340, 1450), (1800, 1950)]:
+    for a, b in [(920, 960), (1110, 1145), (1340, 1450), (1800, 1950)]:
+        plt.axvspan(a, b, alpha=0.12)
         plt.axvspan(a, b, alpha=0.15)
 
     plt.xlabel("Wavelength (nm)", fontsize=12)
     plt.ylabel("Reflectance", fontsize=12)
     plt.title(
         f"Median ROI Spectrum @ ({args.lat:.6f}, {args.lon:.6f}) → r={r}, c={c}\n"
-        f"ROI: {args.roi}×{args.roi} pixels (median) | Atmospheric absorption bands removed",
+        f"ROI: {args.roi}×{args.roi} pixels (median) | Broad + narrow atmospheric residual bands removed",
         fontsize=13,
     )
 

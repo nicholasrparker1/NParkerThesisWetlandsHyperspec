@@ -81,8 +81,8 @@ def main() -> None:
     any_good = False
     global_max = 0.0
 
-    # keep simple numeric summary of "variance" (IQR width) per point
-    variance_summary: list[tuple[str, float]] = []
+    # keep simple numeric summary of ROI spread (median IQR width) per point
+    iqr_summary_vals: list[tuple[str, float]] = []
 
     for pid, lat, lon in pts:
         print(f"\n=== Point {pid}: lat={lat}, lon={lon} ===")
@@ -149,7 +149,9 @@ def main() -> None:
 
         # atmospheric absorption mask (same as single-point)
         bad = (
-            ((wl > 1340) & (wl < 1450))
+            ((wl > 920) & (wl < 960))
+            | ((wl > 1110) & (wl < 1145))
+            | ((wl > 1340) & (wl < 1450))
             | ((wl > 1800) & (wl < 1950))
             | (wl > 2400)
         )
@@ -180,8 +182,8 @@ def main() -> None:
         good_iqr = np.isfinite(iqr) & np.isfinite(wl)
         if np.any(good_iqr):
             iqr_med = float(np.nanmedian(iqr[good_iqr]))
-            variance_summary.append((pid, iqr_med))
-            print(f"ROI variability summary (median p{args.p_hi:.0f}-p{args.p_lo:.0f} width): {iqr_med:.5f}")
+            iqr_summary_vals.append((pid, iqr_med))
+            print(f"ROI spread summary (median IQR width = p{args.p_hi:.0f}-p{args.p_lo:.0f}): {iqr_med:.5f}")
 
         # global y-limit tracking
         global_max = max(global_max, float(np.nanpercentile(med_plot[good_plot], 98)))
@@ -194,14 +196,14 @@ def main() -> None:
         raise RuntimeError("No valid spectra plotted. Check points, snap radius, or ROI location.")
 
     # shade absorption regions on the combined plot
-    for a, b in [(1340, 1450), (1800, 1950)]:
+    for a, b in [(920, 960), (1110, 1145), (1340, 1450), (1800, 1950)]:
         ax.axvspan(a, b, alpha=0.12)
 
-    ax.set_xlabel("Wavelength (nm)", fontsize=12)
+    ax.set_xlabel("Wavelength (nm)", fontsize=12, labelpad=2)
     ax.set_ylabel("Reflectance", fontsize=12)
     ax.set_title(
         f"Median ROI spectra along transect (ROI={args.roi}×{args.roi}, snap={args.snap}px)\n"
-        f"Shaded band: p{args.p_lo:.0f}–p{args.p_hi:.0f} across ROI pixels | Atmospheric absorption bands masked",
+        f"Shaded band: IQR envelope (p{args.p_lo:.0f}–p{args.p_hi:.0f}) across ROI pixels | Broad + narrow atmospheric residual bands masked",
         fontsize=13,
     )
     ax.grid(True, linestyle="--", alpha=0.3)
@@ -212,29 +214,79 @@ def main() -> None:
     y_top = float(global_max * 1.15) if np.isfinite(global_max) and global_max > 0 else 0.2
     ax.set_ylim(0, y_top)
 
-    # Add a small text box summarizing variability (optional but useful)
-    if variance_summary:
-        # show up to first 8 points to keep box compact
-        lines = [f"{pid}: {v:.4f}" for pid, v in variance_summary[:8]]
-        extra = "" if len(variance_summary) <= 8 else f"\n(+{len(variance_summary)-8} more)"
-        var_text = (
-            f"ROI variability (median p{args.p_hi:.0f}-p{args.p_lo:.0f} width)\n"
-            + "\n".join(lines)
-            + extra
+     # Spectral-region labels under x-axis
+    # --------------------------------------------------------
+    xmin, xmax = ax.get_xlim()
+
+    def xfrac(x):
+        return (x - xmin) / (xmax - xmin)
+
+    y_text = -0.21  # vertical position below axis
+    y_line = -0.11            # line position just below axis
+
+
+    ax.set_xlabel("Wavelength (nm)", fontsize=12, labelpad=12)
+
+    # --------------------------------------------------------
+    # Spectral-region labels under x-axis
+    # --------------------------------------------------------
+    xmin, xmax = ax.get_xlim()
+
+    y_line = -0.19
+    y_text = -0.24
+
+    regions = [
+        ("VIS\n400–700", 400, 700),
+        ("NIR\n700–1300", 700, 1300),
+        ("SWIR-I\n1450–1800", 1450, 1800),
+        ("SWIR-II\n1950–2400", 1950, 2400),
+    ]
+
+    for label, x0, x1 in regions:
+        xa = max(x0, xmin)
+        xb = min(x1, xmax)
+        if xb <= xa:
+            continue
+
+        ax.plot(
+            [xa, xb],
+            [y_line, y_line],
+            transform=ax.get_xaxis_transform(),
+            color="black",
+            linewidth=1.0,
+            clip_on=False,
         )
+
+        ax.plot(
+            [xa, xa],
+            [y_line - 0.015, y_line + 0.015],
+            transform=ax.get_xaxis_transform(),
+            color="black",
+            linewidth=1.0,
+            clip_on=False,
+        )
+        ax.plot(
+            [xb, xb],
+            [y_line - 0.015, y_line + 0.015],
+            transform=ax.get_xaxis_transform(),
+            color="black",
+            linewidth=1.0,
+            clip_on=False,
+        )
+
         ax.text(
-            0.01,
-            0.99,
-            var_text,
-            transform=ax.transAxes,
-            ha="left",
+            (xa + xb) / 2,
+            y_text,
+            label,
+            transform=ax.get_xaxis_transform(),
+            ha="center",
             va="top",
-            fontsize=9,
-            bbox=dict(boxstyle="round", facecolor="white", alpha=0.85),
+            fontsize=10,
+            fontweight="bold",
         )
 
     plt.tight_layout()
-
+    plt.subplots_adjust(bottom=0.31)
     outpath = args.out
     if outpath is None:
         outpath = FIGURES / f"spectra_overlay_roi{args.roi}_snap{args.snap}_p{int(args.p_lo)}-{int(args.p_hi)}.png"
