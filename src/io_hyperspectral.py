@@ -34,6 +34,206 @@ def read_1d_array(h5_path: str, dset_path: str) -> np.ndarray:
     with h5py.File(h5_path, "r") as f:
         return f[dset_path][:]
 
+def discover_neon_h5_paths(h5_path: str) -> dict:
+    """
+    Auto-discover the main NEON-style paths inside an HDF5 hyperspectral file.
+
+    Returns a dictionary with:
+        site
+        reflectance_path
+        wavelength_path
+        map_info_path
+        epsg_path
+    """
+    result = {
+        "site": None,
+        "reflectance_path": None,
+        "wavelength_path": None,
+        "map_info_path": None,
+        "epsg_path": None,
+    }
+
+    with h5py.File(h5_path, "r") as f:
+        dataset_names = []
+
+        def visitor(name, obj):
+            if isinstance(obj, h5py.Dataset):
+                dataset_names.append(name)
+
+        f.visititems(visitor)
+
+    for name in dataset_names:
+        if name.endswith("/Reflectance/Reflectance_Data"):
+            result["reflectance_path"] = name
+            result["site"] = name.split("/")[0]
+
+        elif name.endswith("/Reflectance/Metadata/Spectral_Data/Wavelength"):
+            result["wavelength_path"] = name
+
+        elif name.endswith("/Reflectance/Metadata/Coordinate_System/Map_Info"):
+            result["map_info_path"] = name
+
+        elif name.endswith("/Reflectance/Metadata/Coordinate_System/EPSG Code"):
+            result["epsg_path"] = name
+
+    missing = [k for k, v in result.items() if k != "epsg_path" and v is None]
+    if missing:
+        raise ValueError(
+            f"Could not auto-discover required paths in {h5_path}. Missing: {missing}"
+        )
+
+    return result
+
+def get_wavelengths_from_file(h5_path: str):
+    """
+    Open a NEON-style HDF5 file, auto-discover the wavelength path,
+    and return the wavelength array.
+    """
+    paths = discover_neon_h5_paths(h5_path)
+    return read_1d_array(h5_path, paths["wavelength_path"])
+
+
+def get_map_info_and_epsg_from_file(h5_path: str):
+    """
+    Open a NEON-style HDF5 file, auto-discover the coordinate metadata paths,
+    and return (map_info, epsg_code).
+    """
+    paths = discover_neon_h5_paths(h5_path)
+    map_info = read_map_info(h5_path, paths["map_info_path"])
+    epsg_code = None
+
+    if paths["epsg_path"] is not None:
+        with h5py.File(h5_path, "r") as f:
+            epsg_raw = f[paths["epsg_path"]][()]
+            if isinstance(epsg_raw, bytes):
+                epsg_code = epsg_raw.decode("utf-8")
+            else:
+                epsg_code = str(epsg_raw)
+
+    return map_info, epsg_code
+
+
+
+def latlon_to_rowcol_from_file(h5_path: str, lat: float, lon: float):
+    """
+    Convert lat/lon to row/col using coordinate metadata auto-discovered
+    from the HDF5 file.
+    """
+    map_info, _ = get_map_info_and_epsg_from_file(h5_path)
+    return latlon_to_rowcol(lat, lon, map_info)
+
+
+def point_in_file_bounds(h5_path: str, lat: float, lon: float):
+    """
+    Return row, col, and whether the point falls inside the reflectance cube bounds.
+    """
+    paths = discover_neon_h5_paths(h5_path)
+    row, col = latlon_to_rowcol_from_file(h5_path, lat, lon)
+
+    with h5py.File(h5_path, "r") as f:
+        cube = f[paths["reflectance_path"]]
+        rows, cols, _ = cube.shape
+
+    inside = (0 <= row < rows) and (0 <= col < cols)
+
+    return {
+        "row": row,
+        "col": col,
+        "rows": rows,
+        "cols": cols,
+        "inside": inside,
+    }
+
+def read_pixel_spectrum_from_file(h5_path: str, row: int, col: int):
+    """
+    Read a single pixel spectrum using auto-discovered reflectance and wavelength paths.
+    Returns (wavelengths, spectrum).
+    """
+    paths = discover_neon_h5_paths(h5_path)
+    return read_pixel_spectrum(
+        h5_path,
+        paths["reflectance_path"],
+        paths["wavelength_path"],
+        row,
+        col,
+    )
+    return wavelengths, spectrum
+
+def read_pixel_spectrum_from_file_with_snap(
+    h5_path: str,
+    row: int,
+    col: int,
+    search_radius: int = 20,
+    band: int = 0,
+):
+    """
+    Read a single pixel spectrum, snapping to the nearest valid pixel if needed.
+    Returns (wavelengths, spectrum, used_row, used_col).
+    """
+    paths = discover_neon_h5_paths(h5_path)
+
+    used_row, used_col = find_nearest_valid_pixel(
+        h5_path,
+        paths["reflectance_path"],
+        row,
+        col,
+        search_radius=search_radius,
+        band=band,
+    )
+
+    wavelengths, spectrum = read_pixel_spectrum(
+        h5_path,
+        paths["reflectance_path"],
+        paths["wavelength_path"],
+        used_row,
+        used_col,
+    )
+
+    return wavelengths, spectrum, used_row, used_col
+
+def read_roi_median_spectrum_from_file(
+    h5_path: str,
+    row: int,
+    col: int,
+    roi: int,
+):
+    """
+    Read an ROI median spectrum using auto-discovered reflectance and wavelength paths.
+    Returns (wavelengths, median_spectrum, bounds).
+    """
+    if roi < 1 or roi % 2 == 0:
+        raise ValueError("roi must be an odd integer >= 1")
+
+    paths = discover_neon_h5_paths(h5_path)
+
+    with h5py.File(h5_path, "r") as f:
+        cube = f[paths["reflectance_path"]]
+        wl = f[paths["wavelength_path"]][:]
+
+        rows, cols, _ = cube.shape
+        half = roi // 2
+
+        rmin = max(0, row - half)
+        rmax = min(rows - 1, row + half)
+        cmin = max(0, col - half)
+        cmax = min(cols - 1, col + half)
+
+        win = cube[rmin:rmax + 1, cmin:cmax + 1, :].astype(np.float32)
+
+    win = win / SCALING.scale
+    win[win == (SCALING.fill_raw / SCALING.scale)] = np.nan
+    win[win <= SCALING.min_valid] = np.nan
+
+    n_pix = win.shape[0] * win.shape[1]
+    win2 = win.reshape(n_pix, win.shape[2])
+
+    valid_counts = np.sum(np.isfinite(win2), axis=0)
+    min_valid = max(1, int(0.20 * n_pix))
+
+    spec_med = np.nanmedian(win2, axis=0)
+    spec_med[valid_counts < min_valid] = np.nan
+
+    return wl, spec_med, (rmin, rmax, cmin, cmax)
 
 # -----------------------------
 # Reflectance conventions
@@ -85,6 +285,60 @@ def read_roi_mean_spectrum(h5_path, cube_path, wave_path, r0, r1, c0, c1):
     win = read_window(h5_path, cube_path, r0, r1, c0, c1)
     return wavelengths, np.nanmean(win, axis=(0, 1))
 
+def extract_spectrum_from_latlon(
+    h5_path: str,
+    lat: float,
+    lon: float,
+    roi_size: int = 1,
+    snap_radius: int = 20,
+):
+    """
+    End-to-end extraction from lat/lon.
+
+    Returns a dictionary with:
+        row, col, inside, wavelengths, spectrum, bounds
+    """
+    info = point_in_file_bounds(h5_path, lat, lon)
+
+    result = {
+        "row": info["row"],
+        "col": info["col"],
+        "inside": info["inside"],
+        "wavelengths": None,
+        "spectrum": None,
+        "bounds": None,
+        "used_row": None,
+        "used_col": None,
+    }
+
+    if not info["inside"]:
+        return result
+
+    if roi_size == 1:
+        w, s, used_row, used_col = read_pixel_spectrum_from_file_with_snap(
+            h5_path,
+            info["row"],
+            info["col"],
+            search_radius=snap_radius,
+        )
+        result["wavelengths"] = w
+        result["spectrum"] = s
+        result["used_row"] = used_row
+        result["used_col"] = used_col
+    else:
+        w, s, bounds = read_roi_median_spectrum_from_file(
+            h5_path,
+            info["row"],
+            info["col"],
+            roi_size,
+        )
+        result["wavelengths"] = w
+        result["spectrum"] = s
+        result["bounds"] = bounds
+        result["used_row"] = info["row"]
+        result["used_col"] = info["col"]
+
+    return result
 
 # -----------------------------
 # FAST nearest valid pixel search
@@ -118,7 +372,7 @@ def find_nearest_valid_pixel(
 
         band_slice = cube[rmin:rmax, cmin:cmax, band]
 
-        valid_mask = band_slice != SCALING.fill_raw
+        valid_mask = (band_slice != SCALING.fill_raw) & ((band_slice.astype(np.float32) / SCALING.scale) > SCALING.min_valid)
 
         if not np.any(valid_mask):
             raise RuntimeError("No valid pixels found within search radius.")
@@ -202,3 +456,16 @@ def latlon_to_rowcol(lat, lon, map_info):
     row = int(round((map_info["y0"] - y) / map_info["dy"]))
 
     return row, col
+
+def rowcol_to_latlon(row, col, map_info):
+    x = map_info["x0"] + col * map_info["dx"]
+    y = map_info["y0"] - row * map_info["dy"]
+
+    from pyproj import CRS, Transformer
+    transformer = Transformer.from_crs(
+        CRS.from_epsg(map_info["epsg"]),
+        CRS.from_epsg(4326),
+        always_xy=True,
+    )
+    lon, lat = transformer.transform(x, y)
+    return lat, lon

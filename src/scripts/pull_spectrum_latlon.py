@@ -21,8 +21,12 @@ import h5py
 from src.preprocess import clean_spectrum, spectrum_for_plot
 
 
-from src.config import DATA_RAW, FIGURES, REFLECTANCE_PATH, WAVELENGTH_PATH
-from src.io_hyperspectral import latlon_to_rowcol, read_map_info
+from src.config import DATA_RAW, FIGURES
+from src.io_hyperspectral import (
+    latlon_to_rowcol,
+    read_map_info,
+    discover_neon_h5_paths,
+)
 
 #This also needs to be changed based on the hyperspectral file of interest
 
@@ -214,10 +218,15 @@ def main() -> None:
     h5 = h5_files[0]
     print("Using H5:", h5)
 
+    paths = discover_neon_h5_paths(str(h5))
+    cube_path = paths["reflectance_path"]
+    wl_path = paths["wavelength_path"]
+    mapinfo_path = paths["map_info_path"]
+
     # --------------------------------------------------------
     # Convert lat/lon -> pixel (row/col)
     # --------------------------------------------------------
-    mi = read_map_info(str(h5), MAPINFO_PATH)
+    mi = read_map_info(str(h5), mapinfo_path)    
     print("Program is using EPSG:", mi.get("epsg"))
     r0, c0 = latlon_to_rowcol(args.lat, args.lon, mi)
     print(f"lat/lon -> row/col (raw): ({args.lat}, {args.lon}) -> (r={r0}, c={c0})")
@@ -227,7 +236,7 @@ def main() -> None:
     # --------------------------------------------------------
     r, c = snap_to_valid_pixel(
         str(h5),
-        REFLECTANCE_PATH,
+        cube_path,
         r0,
         c0,
         radius=args.snap,
@@ -248,8 +257,8 @@ def main() -> None:
     # --------------------------------------------------------
     wl, spec, bounds = read_roi_median_spectrum(
         str(h5),
-        REFLECTANCE_PATH,
-        WAVELENGTH_PATH,
+        cube_path,
+        wl_path,
         r,
         c,
         roi=args.roi,
