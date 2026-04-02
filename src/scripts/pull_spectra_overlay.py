@@ -10,6 +10,7 @@ see per-band variance within the ROI.
 Uses same logic as pull_spectrum_latlon.py (snap + ROI stats + band masking).
 """
 
+
 from __future__ import annotations
 
 import argparse
@@ -18,14 +19,18 @@ import csv
 import matplotlib.pyplot as plt
 import numpy as np
 
+from src.preprocess import (
+    build_bad_band_mask,
+    build_invalid_value_mask,
+    iqr_summary,
+)
+
 from src.config import DATA_RAW, FIGURES, REFLECTANCE_PATH, WAVELENGTH_PATH
 from src.io_hyperspectral import latlon_to_rowcol, read_map_info
-
-# Reuse helpers from your working single-point script
 from src.scripts.pull_spectrum_latlon import (
     MAPINFO_PATH,
     snap_to_valid_pixel,
-    read_roi_stats_spectrum,  # returns wl, median, p_lo, p_hi, bounds
+    read_roi_stats_spectrum,
 )
 
 
@@ -126,9 +131,10 @@ def main() -> None:
         # warn if ROI is clipped (near edges)
         # (this can reduce effective ROI size and inflate variability)
         # We can't easily get rows/cols without opening H5 again; bounds check still helps.
-        if (rmin == r - (args.roi // 2)) is False or (cmin == c - (args.roi // 2)) is False:
+        if (rmin != r - (args.roi // 2)) or (cmin != c - (args.roi // 2)):
+            print("NOTE: ROI may be clipped near raster edge; check printed bounds.")
             # not perfect, but gives a hint; the printed bounds are the truth
-            pass
+           
 
         # µm -> nm if needed
         wl = wl.astype(float)
@@ -148,27 +154,37 @@ def main() -> None:
             print("Applied scale factor: spec /= 10000.0 (scaled-int reflectance -> 0–1)")
 
         # atmospheric absorption mask (same as single-point)
-        bad = (
-            ((wl > 920) & (wl < 960))
-            | ((wl > 1110) & (wl < 1145))
-            | ((wl > 1340) & (wl < 1450))
-            | ((wl > 1800) & (wl < 1950))
-            | (wl > 2400)
+        
+        bad_band_mask = build_bad_band_mask(
+            wl,
+            include_narrow=True,
         )
 
-        # plotting arrays with NaN gaps
+        invalid_med = build_invalid_value_mask(
+            med,
+            min_reflectance=0.0,
+            max_reflectance=1.2,
+        )
+        invalid_lo = build_invalid_value_mask(
+            lo,
+            min_reflectance=0.0,
+            max_reflectance=1.2,
+        )
+        invalid_hi = build_invalid_value_mask(
+            hi,
+            min_reflectance=0.0,
+            max_reflectance=1.2,
+        )
+
+        masked = bad_band_mask | invalid_med | invalid_lo | invalid_hi
+
         med_plot = med.copy()
         lo_plot = lo.copy()
         hi_plot = hi.copy()
 
-        med_plot[bad] = np.nan
-        lo_plot[bad] = np.nan
-        hi_plot[bad] = np.nan
-
-        # keep consistent with your cleaning cap
-        med_plot[med_plot > 1.2] = np.nan
-        lo_plot[lo_plot > 1.2] = np.nan
-        hi_plot[hi_plot > 1.2] = np.nan
+        med_plot[masked] = np.nan
+        lo_plot[masked] = np.nan
+        hi_plot[masked] = np.nan
 
         good_plot = np.isfinite(wl) & np.isfinite(med_plot)
         if not np.any(good_plot):
@@ -178,12 +194,14 @@ def main() -> None:
         any_good = True
 
         # numeric "variance" summary: median IQR width across wavelengths (excluding masked NaNs)
-        iqr = hi_plot - lo_plot
-        good_iqr = np.isfinite(iqr) & np.isfinite(wl)
-        if np.any(good_iqr):
-            iqr_med = float(np.nanmedian(iqr[good_iqr]))
+        if np.any(np.isfinite(lo_plot)) and np.any(np.isfinite(hi_plot)):
+            iqr_med = iqr_summary(lo_plot, hi_plot)
             iqr_summary_vals.append((pid, iqr_med))
-            print(f"ROI spread summary (median IQR width = p{args.p_hi:.0f}-p{args.p_lo:.0f}): {iqr_med:.5f}")
+            print(
+                f"ROI spread summary (median IQR width = "
+                f"p{args.p_hi:.0f}-p{args.p_lo:.0f}): {iqr_med:.5f}"
+            )
+            
 
         # global y-limit tracking
         global_max = max(global_max, float(np.nanpercentile(med_plot[good_plot], 98)))
@@ -199,7 +217,7 @@ def main() -> None:
     for a, b in [(920, 960), (1110, 1145), (1340, 1450), (1800, 1950)]:
         ax.axvspan(a, b, alpha=0.12)
 
-    ax.set_xlabel("Wavelength (nm)", fontsize=12, labelpad=2)
+    ax.set_xlabel("Wavelength (nm)", fontsize=12, labelpad=12)
     ax.set_ylabel("Reflectance", fontsize=12)
     ax.set_title(
         f"Median ROI spectra along transect (ROI={args.roi}×{args.roi}, snap={args.snap}px)\n"
@@ -213,19 +231,6 @@ def main() -> None:
     # y-limit (consistent across curves)
     y_top = float(global_max * 1.15) if np.isfinite(global_max) and global_max > 0 else 0.2
     ax.set_ylim(0, y_top)
-
-     # Spectral-region labels under x-axis
-    # --------------------------------------------------------
-    xmin, xmax = ax.get_xlim()
-
-    def xfrac(x):
-        return (x - xmin) / (xmax - xmin)
-
-    y_text = -0.21  # vertical position below axis
-    y_line = -0.11            # line position just below axis
-
-
-    ax.set_xlabel("Wavelength (nm)", fontsize=12, labelpad=12)
 
     # --------------------------------------------------------
     # Spectral-region labels under x-axis
