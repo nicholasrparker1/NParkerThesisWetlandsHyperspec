@@ -83,13 +83,16 @@ def main() -> None:
     # ---- plotting ----
     fig, ax = plt.subplots(figsize=(11, 6))
 
+
+    n = len(pts)
+    colors = plt.cm.gist_rainbow(np.linspace(0, 1, n, endpoint=False))
     any_good = False
     global_max = 0.0
 
     # keep simple numeric summary of ROI spread (median IQR width) per point
     iqr_summary_vals: list[tuple[str, float]] = []
 
-    for pid, lat, lon in pts:
+    for i, (pid, lat, lon) in enumerate(pts):
         print(f"\n=== Point {pid}: lat={lat}, lon={lon} ===")
 
         # lat/lon -> raw row/col
@@ -207,8 +210,23 @@ def main() -> None:
         global_max = max(global_max, float(np.nanpercentile(med_plot[good_plot], 98)))
 
         # plot median line + shaded percentile band
-        ax.plot(wl, med_plot, linewidth=2.0, label=f"Point {pid}")
-        ax.fill_between(wl, lo_plot, hi_plot, alpha=0.15)
+        color = colors[i]
+
+        ax.plot(
+            wl,
+            med_plot,
+            color=color,
+            linewidth=2.0,
+            label=f"Point {pid}",
+        )
+
+        ax.fill_between(
+            wl,
+            lo_plot,
+            hi_plot,
+            color=color,
+            alpha=0.15,
+        )
 
     if not any_good:
         raise RuntimeError("No valid spectra plotted. Check points, snap radius, or ROI location.")

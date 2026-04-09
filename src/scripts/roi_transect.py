@@ -64,12 +64,14 @@ def main():
         roi_px_camera = max(1, roi_px_camera)
         half = roi_px_camera // 2
 
-        # Color palette (distinct colors). Matplotlib built-in cycle.
-        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        # Rainbow-style colors progressing by point order
+        n = len(pts)
+        colors = plt.cm.gist_rainbow(np.linspace(0, 1, n, endpoint=False))
+
         legend_handles = []
 
         for i, (pid, lat, lon) in enumerate(pts):
-            color = colors[i % len(colors)]
+            color = colors[i]
 
             x, y = transformer.transform(lon, lat)
             col, row = ~src.transform * (x, y)
@@ -84,7 +86,6 @@ def main():
             )
             ax.add_patch(rect)
 
-            # Legend entry (line sample)
             legend_handles.append(
                 Line2D([0], [0], color=color, lw=3, label=f"Point {pid}")
             )
@@ -93,7 +94,6 @@ def main():
             f"HSI ROI boxes along transect ({args.roi}×{args.roi}, ~{target_footprint_m:.1f} m footprint)"
         )
 
-        # Add legend (no map obstruction)
         ax.legend(
             handles=legend_handles,
             loc="upper right",
