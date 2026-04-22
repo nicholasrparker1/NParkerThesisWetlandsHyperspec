@@ -30,8 +30,8 @@ from src.io_hyperspectral import (
 
 #This also needs to be changed based on the hyperspectral file of interest
 
-MAPINFO_PATH = "ROCX/Reflectance/Metadata/Coordinate_System/Map_Info"
-EPSG_PATH    = "ROCX/Reflectance/Metadata/Coordinate_System/EPSG Code"
+MAPINFO_PATH = "NOGP/Reflectance/Metadata/Coordinate_System/Map_Info"
+EPSG_PATH = "NOGP/Reflectance/Metadata/Coordinate_System/EPSG Code"
 
 # ============================================================
 # FAST SNAP FUNCTION (single disk read of a small window)

@@ -10,12 +10,11 @@ from src.io_hyperspectral import (
     latlon_to_rowcol,
 )
 
-DEFAULT_H5 = r".\data\raw\NEON_D01_ROCX_DP1_L001-1_20250905_bidirectional_reflectance.h5"
-CUBE_PATH  = "ROCX/Reflectance/Reflectance_Data"
-WAVE_PATH  = "ROCX/Reflectance/Metadata/Spectral_Data/Wavelength"
-MAPINFO_PATH = "ROCX/Reflectance/Metadata/Coordinate_System/Map_Info"
-EPSG = 32618
-
+DEFAULT_H5 = r".1NEON_D09_WOOD_DP3_480000_5221000_bidirectional_reflectance.h5"
+cube_path = "NOGP/Reflectance/Reflectance_Data"
+WAVE_PATH = "NOGP/Reflectance/Metadata/Spectral_Data/Wavelength"
+MAPINFO_PATH = "NOGP/Reflectance/Metadata/Coordinate_System/Map_Info"
+epsg = 32614
 
 def main():
     ap = argparse.ArgumentParser()

@@ -24,16 +24,21 @@ Important:
 
 from __future__ import annotations
 
+
+
 import argparse
 import csv
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-
+from src.preprocess import (
+    clean_spectrum,
+    build_bad_band_mask,
+)
 from src.config import DATA_RAW, FIGURES, REFLECTANCE_PATH, WAVELENGTH_PATH
 from src.io_hyperspectral import latlon_to_rowcol, read_map_info
-from src.preprocess import clean_spectrum
+
 from src.models.marmit import (
     build_fit_window_mask,
     fit_marmit_simple,
@@ -44,7 +49,16 @@ from src.scripts.pull_spectrum_latlon import (
     snap_to_valid_pixel,
     read_roi_median_spectrum,
 )
-
+POINT_COLORS = {
+    47: "#d62728",  # red
+    46: "#ff7f0e",  # orange
+    45: "#bcbd22",  # yellow-olive
+    44: "#2ca02c",  # green
+    43: "#17becf",  # cyan
+    42: "#1f77b4",  # blue
+    41: "#9467bd",  # purple
+    40: "#8c564b",  # brown
+}
 def lookup_point_in_csv(csv_path: str, point_id: int) -> tuple[float, float]:
     with open(csv_path, "r", newline="") as f:
         reader = csv.DictReader(f)
@@ -84,7 +98,10 @@ def extract_clean_roi_spectrum(
 ) -> tuple[np.ndarray, np.ndarray, tuple[int, int]]:
     """
     Returns:
-      wl_clean, spec_clean, (r,c)
+      wl_full, spec_full, (r,c)
+
+    Keeps the full wavelength axis for plotting.
+    Invalid reflectance values are set to NaN, but bad bands are not removed here.
     """
     mi = read_map_info(h5_path, MAPINFO_PATH)
     r0, c0 = latlon_to_rowcol(lat, lon, mi)
@@ -119,15 +136,10 @@ def extract_clean_roi_spectrum(
     if np.nanmax(spec) > 2.0:
         spec = spec / 10000.0
 
-    wl_clean, spec_clean, _keep = clean_spectrum(
-        wl,
-        spec,
-        include_narrow_bad_bands=True,
-        max_reflectance=1.2,
-    )
+    # keep full wavelength axis; only mask invalid reflectance values
+    spec[(spec <= 0.0) | (spec >= 1.2)] = np.nan
 
-    return wl_clean, spec_clean, (r, c)
-
+    return wl, spec, (r, c)
 
 def intersect_clean_spectra(
     wl1: np.ndarray,
@@ -218,6 +230,25 @@ def save_fit_summary_csv(
         writer.writerow(["provisional_smc", provisional_smc if provisional_smc is not None else ""])
         writer.writerow(["provisional_smc_slope", provisional_smc_slope if provisional_smc_slope is not None else ""])
 
+def mask_bad_bands_for_plot(
+    wavelengths_nm: np.ndarray,
+    spectrum: np.ndarray,
+    *,
+    include_narrow_bad_bands: bool = True,
+) -> np.ndarray:
+    """
+    Return a copy of spectrum with atmospheric / unstable bands set to NaN
+    so plotted lines break across masked regions.
+    """
+    wl = np.asarray(wavelengths_nm, dtype=float)
+    spec = np.asarray(spectrum, dtype=float).copy()
+
+    bad = build_bad_band_mask(
+        wl,
+        include_narrow=include_narrow_bad_bands,
+    )
+    spec[bad] = np.nan
+    return spec
 
 def main() -> None:
     ap = argparse.ArgumentParser()
@@ -242,6 +273,11 @@ def main() -> None:
     ap.add_argument("--out", type=str, default=None)
     ap.add_argument("--use-default-fit-windows", action="store_true")
     args = ap.parse_args()
+
+    dry_color = POINT_COLORS.get(args.dry_id, "#8c564b")
+    target_color = POINT_COLORS.get(args.target_id, "#d62728")
+    water_color = POINT_COLORS.get(args.water_id, "#1f77b4") if args.water_id is not None else "#1f77b4"
+    model_color = "black"
 
     if args.points_csv is not None:
         if args.dry_id is not None:
@@ -381,83 +417,181 @@ def main() -> None:
     stem = outpath.stem
     parent = outpath.parent
 
-    # --------------------------------------------------------
+        # --------------------------------------------------------
     # Main spectral fit plot
-    # Plot full cleaned/intersected spectra, but fit only selected windows
+    # Same visual style as pull_spectra_overlay.py, plus MARMIT fit
     # --------------------------------------------------------
     fig, ax = plt.subplots(figsize=(11, 6))
 
-    # Plot full cleaned spectra
-    ax.plot(
+        # --- colors
+    dry_color = "gold"
+    target_color = "limegreen"
+    model_color = "black"
+    water_color = "deepskyblue"
+
+    # --- create masked plotting versions so lines break in bad bands
+    dry_plot = mask_bad_bands_for_plot(
         wl_fit,
         dry_fit,
-        linewidth=2.0,
-        label="Dry reference (upland)",
+        include_narrow_bad_bands=True,
     )
-    ax.plot(
+    tgt_plot = mask_bad_bands_for_plot(
         wl_fit,
         tgt_fit,
-        linewidth=2.0,
-        label="Observed target (shore)",
+        include_narrow_bad_bands=True,
     )
 
-    # Plot modeled curve over the full common spectrum where it exists
     modeled_plot = np.full_like(wl_fit, np.nan, dtype=float)
     modeled_plot[result.valid_mask] = result.modeled_reflectance[result.valid_mask]
-    ax.plot(
+    modeled_plot = mask_bad_bands_for_plot(
         wl_fit,
         modeled_plot,
-        linestyle="--",
-        linewidth=2.2,
-        label=f"Simplified MARMIT-style fit (L={result.thickness_um:.1f} um)",
+        include_narrow_bad_bands=True,
     )
 
+    wat_plot = None
     if wat_fit is not None:
-        ax.plot(
+        wat_plot = mask_bad_bands_for_plot(
             wl_fit,
             wat_fit,
+            include_narrow_bad_bands=True,
+        )
+
+    # --- plot masked spectra
+    ax.plot(
+        wl_fit,
+        dry_plot,
+        color=dry_color,
+        linewidth=2.0,
+        label=f"Dry reference (ID {args.dry_id})" if args.dry_id is not None else "Dry reference",
+    )
+
+    ax.plot(
+        wl_fit,
+        tgt_plot,
+        color=target_color,
+        linewidth=2.0,
+        label=f"Observed target (ID {args.target_id})" if args.target_id is not None else "Observed target",
+    )
+
+    if wat_plot is not None:
+        ax.plot(
+            wl_fit,
+            wat_plot,
+            color=water_color,
             linewidth=2.0,
-            alpha=0.85,
+            alpha=0.9,
             label="Open water (comparison only)",
         )
 
-    # Shade fit windows when used
-    if args.use_default_fit_windows:
-        for lo, hi in [(1000, 1300), (1550, 1750), (2000, 2300)]:
-            ax.axvspan(lo, hi, alpha=0.10, color="gray")
-
-    ax.set_xlabel("Wavelength (nm)", fontsize=12)
-    ax.set_ylabel("Reflectance", fontsize=12)
-    ax.set_title(
-        "Simplified MARMIT-style fit for cleaned bare-soil spectrum\n"
-        "Dry reference + observed shore spectrum + modeled wet-soil spectrum",
-        fontsize=13,
+    ax.plot(
+        wl_fit,
+        modeled_plot,
+        color=model_color,
+        linestyle="--",
+        linewidth=2.4,
+        label=f"MARMIT fit (L*={result.thickness_um:.0f} µm)"
     )
+
+    # --- shade atmospheric absorption / residual regions
+    for a, b in [(920, 960), (1110, 1145), (1340, 1450), (1800, 1950)]:
+        ax.axvspan(a, b, alpha=0.12)
+
+    ax.set_xlabel("Wavelength (nm)", fontsize=12, labelpad=12)
+    ax.set_ylabel("Reflectance", fontsize=12)
+    ax.set_title("Simplified MARMIT-style fit", fontsize=13)
     ax.grid(True, linestyle="--", alpha=0.3)
     ax.minorticks_on()
-    ax.legend(loc="best")
+    ax.legend(loc="upper right")
 
+    # y-limit
+    plot_max = np.nanmax([
+        np.nanmax(dry_plot) if np.any(np.isfinite(dry_plot)) else np.nan,
+        np.nanmax(tgt_plot) if np.any(np.isfinite(tgt_plot)) else np.nan,
+        np.nanmax(modeled_plot) if np.any(np.isfinite(modeled_plot)) else np.nan,
+        np.nanmax(wat_plot) if wat_plot is not None and np.any(np.isfinite(wat_plot)) else np.nan,
+    ])
+    y_top = float(plot_max * 1.08) if np.isfinite(plot_max) and plot_max > 0 else 0.2
+    ax.set_ylim(0, y_top)
+
+    # compact stats box
     text = (
-        f"Fit parameter L: {result.thickness_um:.2f} um\n"
-        f"RMSE: {result.rmse:.5f}\n"
-        f"R^2: {result.r2:.3f}\n"
-        f"ROI: {args.roi}x{args.roi} px\n"
-        f"Snap: {args.snap} px\n"
-        f"Valid bands: {valid_n}\n"
-        f"Fit windows: {fit_windows_label}"
+        f"L*: {result.thickness_um:.0f} µm\n"
+        f"RMSE: {result.rmse:.4f}\n"
+        f"R²: {result.r2:.3f}"
     )
-
     if smc_est is not None:
-        text += f"\nProvisional SMC: {smc_est:.3f}"
+        text += f"\nSMC: {smc_est:.3f}"
+
     ax.text(
-        0.02, 0.98, text,
+        0.015, 0.98, text,
         transform=ax.transAxes,
         ha="left", va="top",
         fontsize=10,
-        bbox=dict(boxstyle="round", facecolor="white", alpha=0.85),
+        bbox=dict(boxstyle="round", facecolor="white", alpha=0.9),
     )
 
+    # --------------------------------------------------------
+    # Spectral-region labels under x-axis
+    # Same style as pull_spectra_overlay.py
+    # --------------------------------------------------------
+    xmin, xmax = ax.get_xlim()
+
+    y_line = -0.19
+    y_text = -0.24
+
+    regions = [
+        ("VIS\n400–700", 400, 700),
+        ("NIR\n700–1300", 700, 1300),
+        ("SWIR-I\n1450–1800", 1450, 1800),
+        ("SWIR-II\n1950–2400", 1950, 2400),
+    ]
+
+    for label, x0, x1 in regions:
+        xa = max(x0, xmin)
+        xb = min(x1, xmax)
+        if xb <= xa:
+            continue
+
+        ax.plot(
+            [xa, xb],
+            [y_line, y_line],
+            transform=ax.get_xaxis_transform(),
+            color="black",
+            linewidth=1.0,
+            clip_on=False,
+        )
+
+        ax.plot(
+            [xa, xa],
+            [y_line - 0.015, y_line + 0.015],
+            transform=ax.get_xaxis_transform(),
+            color="black",
+            linewidth=1.0,
+            clip_on=False,
+        )
+        ax.plot(
+            [xb, xb],
+            [y_line - 0.015, y_line + 0.015],
+            transform=ax.get_xaxis_transform(),
+            color="black",
+            linewidth=1.0,
+            clip_on=False,
+        )
+
+        ax.text(
+            (xa + xb) / 2,
+            y_text,
+            label,
+            transform=ax.get_xaxis_transform(),
+            ha="center",
+            va="top",
+            fontsize=10,
+            fontweight="bold",
+        )
+
     plt.tight_layout()
+    plt.subplots_adjust(bottom=0.31)
     plt.savefig(outpath, dpi=300)
     plt.show()
     print("Saved main fit figure:", outpath)

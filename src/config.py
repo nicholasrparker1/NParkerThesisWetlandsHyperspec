@@ -11,8 +11,8 @@ OUTPUTS = PROJECT_ROOT / "outputs"
 FIGURES = OUTPUTS / "figures"
 TABLES = OUTPUTS / "tables"
 
-REFLECTANCE_PATH = "ROCX/Reflectance/Reflectance_Data"
-WAVELENGTH_PATH = "ROCX/Reflectance/Metadata/Spectral_Data/Wavelength"
+REFLECTANCE_PATH = "NOGP/Reflectance/Reflectance_Data"
+WAVELENGTH_PATH = "NOGP/Reflectance/Metadata/Spectral_Data/Wavelength"
 
 ATMOSPHERIC_WINDOWS_BROAD_NM = [
     (1340.0, 1450.0),

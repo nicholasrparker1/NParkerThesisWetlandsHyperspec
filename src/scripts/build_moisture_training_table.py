@@ -16,8 +16,7 @@ from src.scripts.pull_spectrum_latlon import (
     read_roi_median_spectrum,
 )
 
-MAPINFO_PATH = "ROCX/Reflectance/Metadata/Coordinate_System/Map_Info"
-
+MAPINFO_PATH = "NOGP/Reflectance/Metadata/Coordinate_System/Map_Info"
 
 def find_h5_file() -> Path:
     h5_files = list(DATA_RAW.glob("*.h5"))
