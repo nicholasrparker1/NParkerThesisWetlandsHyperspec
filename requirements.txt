@@ -1,0 +1,10 @@
+numpy
+pandas
+matplotlib
+h5py
+pyproj
+rasterio
+scikit-learn
+openpyxl
+contextily
+matplotlib-scalebar

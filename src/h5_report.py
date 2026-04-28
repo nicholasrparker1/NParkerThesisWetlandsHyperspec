@@ -8,6 +8,8 @@ from typing import Any, Dict, List
 import h5py
 import numpy as np
 
+from src.io_hyperspectral import discover_neon_h5_paths
+
 
 # ======================================================================================
 # JSON safety helpers
@@ -195,22 +197,25 @@ def build_report(h5_path: str) -> Dict[str, Any]:
             "key_dataset_summaries": {},
         }
 
+        discovered = discover_neon_h5_paths(h5_path)
+        base = f"{discovered['site']}/Reflectance"
+
         # Key paths (safe if missing)
         key_paths = {
-            "reflectance_cube": "ROCX/Reflectance/Reflectance_Data",
-            "wavelengths": "ROCX/Reflectance/Metadata/Spectral_Data/Wavelength",
-            "fwhm": "ROCX/Reflectance/Metadata/Spectral_Data/FWHM",
-            "solar_azimuth": "ROCX/Reflectance/Metadata/Logs/Solar_Azimuth_Angle",
-            "solar_zenith": "ROCX/Reflectance/Metadata/Logs/Solar_Zenith_Angle",
-            "to_sensor_azimuth": "ROCX/Reflectance/Metadata/to-sensor_Azimuth_Angle",
-            "to_sensor_zenith": "ROCX/Reflectance/Metadata/to-sensor_Zenith_Angle",
-            "flight_altitude": "ROCX/Reflectance/Metadata/Flight_Trajectory/Flight_Altitude",
-            "flight_heading": "ROCX/Reflectance/Metadata/Flight_Trajectory/Flight_Heading",
-            "flight_time": "ROCX/Reflectance/Metadata/Flight_Trajectory/Flight_Time",
-            "smooth_surface_elev": "ROCX/Reflectance/Metadata/Ancillary_Imagery/Smooth_Surface_Elevation",
-            "coord_epsg": "ROCX/Reflectance/Metadata/Coordinate_System/EPSG Code",
-            "coord_mapinfo": "ROCX/Reflectance/Metadata/Coordinate_System/Map_Info",
-            "coord_proj4": "ROCX/Reflectance/Metadata/Coordinate_System/Proj4",
+            "reflectance_cube": discovered["reflectance_path"],
+            "wavelengths": discovered["wavelength_path"],
+            "fwhm": f"{base}/Metadata/Spectral_Data/FWHM",
+            "solar_azimuth": f"{base}/Metadata/Logs/Solar_Azimuth_Angle",
+            "solar_zenith": f"{base}/Metadata/Logs/Solar_Zenith_Angle",
+            "to_sensor_azimuth": f"{base}/Metadata/to-sensor_Azimuth_Angle",
+            "to_sensor_zenith": f"{base}/Metadata/to-sensor_Zenith_Angle",
+            "flight_altitude": f"{base}/Metadata/Flight_Trajectory/Flight_Altitude",
+            "flight_heading": f"{base}/Metadata/Flight_Trajectory/Flight_Heading",
+            "flight_time": f"{base}/Metadata/Flight_Trajectory/Flight_Time",
+            "smooth_surface_elev": f"{base}/Metadata/Ancillary_Imagery/Smooth_Surface_Elevation",
+            "coord_epsg": discovered["epsg_path"] or f"{base}/Metadata/Coordinate_System/EPSG Code",
+            "coord_mapinfo": discovered["map_info_path"],
+            "coord_proj4": f"{base}/Metadata/Coordinate_System/Proj4",
         }
 
         present: Dict[str, str] = {}

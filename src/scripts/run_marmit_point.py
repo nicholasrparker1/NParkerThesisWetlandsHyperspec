@@ -36,19 +36,15 @@ from src.preprocess import (
     clean_spectrum,
     build_bad_band_mask,
 )
-from src.config import DATA_RAW, FIGURES, REFLECTANCE_PATH, WAVELENGTH_PATH
-from src.io_hyperspectral import latlon_to_rowcol, read_map_info
+from src.config import FIGURES
 
 from src.models.marmit import (
     build_fit_window_mask,
     fit_marmit_simple,
     interpolate_alpha_to_wavelengths,
 )
-from src.scripts.pull_spectrum_latlon import (
-    MAPINFO_PATH,
-    snap_to_valid_pixel,
-    read_roi_median_spectrum,
-)
+from src.scripts.pull_spectrum_latlon import snap_to_valid_pixel, read_roi_median_spectrum
+from src.workflow import find_h5_files, find_h5_for_point, normalize_reflectance, normalize_wavelengths_nm
 POINT_COLORS = {
     47: "#d62728",  # red
     46: "#ff7f0e",  # orange
@@ -89,7 +85,7 @@ def load_alpha_csv(csv_path: str) -> tuple[np.ndarray, np.ndarray]:
 
 
 def extract_clean_roi_spectrum(
-    h5_path: str,
+    h5_path: str | None,
     lat: float,
     lon: float,
     *,
@@ -103,14 +99,16 @@ def extract_clean_roi_spectrum(
     Keeps the full wavelength axis for plotting.
     Invalid reflectance values are set to NaN, but bad bands are not removed here.
     """
-    mi = read_map_info(h5_path, MAPINFO_PATH)
-    r0, c0 = latlon_to_rowcol(lat, lon, mi)
+    h5_files = [Path(h5_path)] if h5_path is not None else find_h5_files()
+    match = find_h5_for_point(lat, lon, h5_files)
+    if match is None:
+        raise RuntimeError(f"Point ({lat}, {lon}) is not inside any H5 tile.")
 
     r, c = snap_to_valid_pixel(
-        h5_path,
-        REFLECTANCE_PATH,
-        r0,
-        c0,
+        str(match.h5_path),
+        match.reflectance_path,
+        match.row,
+        match.col,
         radius=snap,
         band=0,
     )
@@ -120,21 +118,16 @@ def extract_clean_roi_spectrum(
         )
 
     wl, spec, _bounds = read_roi_median_spectrum(
-        h5_path,
-        REFLECTANCE_PATH,
-        WAVELENGTH_PATH,
+        str(match.h5_path),
+        match.reflectance_path,
+        match.wavelength_path,
         r,
         c,
         roi=roi,
     )
 
-    wl = wl.astype(float)
-    if float(np.nanmax(wl)) < 50.0:
-        wl *= 1000.0
-
-    spec = spec.astype(float)
-    if np.nanmax(spec) > 2.0:
-        spec = spec / 10000.0
+    wl = normalize_wavelengths_nm(wl)
+    spec = normalize_reflectance(spec)
 
     # keep full wavelength axis; only mask invalid reflectance values
     spec[(spec <= 0.0) | (spec >= 1.2)] = np.nan
@@ -291,22 +284,21 @@ def main() -> None:
             "You must provide either direct dry/target lat/lon or use --points-csv with --dry-id and --target-id."
         )
 
-    h5_files = list(DATA_RAW.glob("*.h5"))
-    if not h5_files:
-        raise FileNotFoundError(f"No .h5 files found in {DATA_RAW}")
-    h5 = str(h5_files[0])
-    print("Using H5:", h5)
+    h5_files = find_h5_files()
+    print("H5 files available:")
+    for h5 in h5_files:
+        print(" -", h5.name)
 
     # Extract dry and target spectra
     wl_dry, spec_dry, dry_rc = extract_clean_roi_spectrum(
-        h5,
+        None,
         args.dry_lat,
         args.dry_lon,
         snap=args.snap,
         roi=args.roi,
     )
     wl_tgt, spec_tgt, tgt_rc = extract_clean_roi_spectrum(
-        h5,
+        None,
         args.target_lat,
         args.target_lon,
         snap=args.snap,
@@ -318,7 +310,7 @@ def main() -> None:
     wat_rc = None
     if have_water:
         wl_wat, spec_wat, wat_rc = extract_clean_roi_spectrum(
-            h5,
+            None,
             args.water_lat,
             args.water_lon,
             snap=args.snap,

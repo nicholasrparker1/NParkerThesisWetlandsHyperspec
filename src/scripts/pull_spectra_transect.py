@@ -1,7 +1,8 @@
 import argparse
-import csv
 import subprocess
 import sys
+
+from src.workflow import load_point_csv
 
 
 def main():
@@ -11,21 +12,17 @@ def main():
     ap.add_argument("--snap", type=int, default=40, help="Snap/search radius in pixels (default 40)")
     args = ap.parse_args()
 
-    pts = []
-    with open(args.points, "r", newline="") as f:
-        reader = csv.DictReader(f)
-        for r in reader:
-            pts.append((str(r["id"]), float(r["lat"]), float(r["lon"])))
+    points = load_point_csv(args.points)
 
-    for pid, lat, lon in pts:
-        print(f"\n=== Point {pid}: lat={lat}, lon={lon} ===")
+    for point in points:
+        print(f"\n=== Point {point.id}: lat={point.lat}, lon={point.lon} ===")
 
         cmd = [
             sys.executable,
             "-m",
             "src.scripts.pull_spectrum_latlon",
-            "--lat", str(lat),
-            "--lon", str(lon),
+            "--lat", str(point.lat),
+            "--lon", str(point.lon),
             "--roi", str(args.roi),
             "--snap", str(args.snap),
         ]
@@ -33,7 +30,7 @@ def main():
         try:
             subprocess.run(cmd, check=True)
         except subprocess.CalledProcessError as e:
-            print(f"FAILED Point {pid}: {e}")
+            print(f"FAILED Point {point.id}: {e}")
 
     print("\nDone.")
 

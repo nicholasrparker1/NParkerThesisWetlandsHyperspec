@@ -1,401 +1,164 @@
 NParkerThesisWetlandsHyperspec
-Quick Start + What To Change + Workflow Guide
+Workflow Guide
 ==================================================
 
 Purpose
 -------
-This repo is for extracting, cleaning, and plotting hyperspectral spectra from NEON ROCX H5 reflectance data, mainly for wetland / soil / water point comparison.
+This repository extracts, cleans, plots, and analyzes spectra from NEON-style
+airborne hyperspectral HDF5 reflectance files.
 
-The most common workflow is:
-1. point locations in CSV
-2. convert lat/lon to raster row/col
-3. snap to nearest valid pixel if needed
-4. extract ROI-based spectral statistics
-5. clean / mask bad spectral bands
-6. plot one or more spectra
-7. save figure to outputs
+The normal user workflow is:
 
---------------------------------------------------
-MAIN FILES AND WHAT THEY DO
---------------------------------------------------
+1. Put one or more .h5 files in data/raw/
+2. Prepare a CSV with id,lat,lon columns
+3. Install dependencies with pip install -r requirements.txt
+4. Run the setup check
+5. Run a script from src/scripts/
+6. Inspect figures in outputs/figures and tables in outputs/tables
 
-1) src/config.py
-   Central settings file.
-   This is the first file a new user should check.
+The code automatically discovers:
 
-   It defines:
-   - project directories
-   - raw data folder
-   - processed data folder
-   - output figure folder
-   - important H5 dataset paths
+- the site/group name inside each H5
+- the reflectance cube path
+- the wavelength path
+- the map metadata path
+- the coordinate grid/projection
+- which H5 tile contains each point
 
-   Typical important variables:
-   - DATA_RAW
-   - DATA_PROCESSED
-   - FIGURES
-   - REFLECTANCE_PATH
-   - WAVELENGTH_PATH
-
-2) src/io_hyperspectral.py
-   Low-level H5 reading and coordinate utilities.
-
-   Typical responsibilities:
-   - open/read H5 metadata
-   - read map info
-   - convert lat/lon -> row/col
-   - support reading hyperspectral arrays
-
-3) src/preprocess.py
-   Spectral cleaning utilities.
-
-   Main jobs:
-   - define bad wavelength windows
-   - define invalid reflectance rules
-   - create masks
-   - prepare spectra for plotting
-
-   Important functions:
-   - build_bad_band_mask(...)
-   - build_invalid_value_mask(...)
-   - clean_spectrum(...)
-   - spectrum_for_plot(...)
-   - iqr_summary(...)
-
-4) src/scripts/pull_spectrum_latlon.py
-   Core single-point / ROI extraction logic.
-
-   Main jobs:
-   - take one lat/lon point
-   - convert to row/col
-   - snap to nearest valid pixel
-   - extract ROI spectral statistics
-   - return wavelength, median spectrum, lower percentile, upper percentile, ROI bounds
-
-   This is one of the most important files in the repo.
-
-5) src/scripts/pull_spectra_overlay.py
-   Main multi-point plotting script.
-
-   Main jobs:
-   - read CSV of points
-   - loop through each point
-   - call pull_spectrum_latlon helpers
-   - apply spectral cleaning/masking
-   - overlay spectra on one figure
-   - plot IQR shading
-   - save figure
-
-6) src/scripts/roi_transect.py
-   Used to draw or inspect ROI/transect locations on imagery.
-
-7) src/scripts/roi_box.py
-   Used for plotting ROI boxes on raster imagery.
-
-8) src/scripts/inspect_h5.py and src/scripts/make_h5_report.py
-   Used for understanding the H5 structure and checking dataset contents.
+A normal user should not need to edit H5 paths in src/config.py.
 
 --------------------------------------------------
-MOST COMMON ORDER OF OPERATIONS
+CORE FILES
 --------------------------------------------------
 
-When you run:
+src/workflow.py
+  Shared workflow helpers:
+  - find H5 files in data/raw
+  - load point CSVs
+  - auto-match each lat/lon to the H5 tile that contains it
+  - normalize wavelength units to nm
+  - normalize scaled reflectance to 0-1
+  - assign consistent rainbow colors by CSV row order
 
-python -m src.scripts.pull_spectra_overlay --points data/processed/transect_points.csv --roi 9 --snap 40
+src/io_hyperspectral.py
+  Low-level H5 and coordinate utilities:
+  - discover NEON-style H5 paths
+  - read datasets and spectra
+  - parse Map_Info
+  - convert lat/lon to row/col
 
-the code flow is roughly:
-
-1. pull_spectra_overlay.py starts
-2. reads points CSV
-3. finds the H5 file in data/raw
-4. reads map info once
-5. for each point:
-   a. convert lat/lon -> row/col
-   b. snap to nearest valid pixel
-   c. call read_roi_stats_spectrum(...) from pull_spectrum_latlon.py
-   d. get back:
-      - wavelengths
-      - median spectrum
-      - lower percentile
-      - upper percentile
-      - ROI bounds
-   e. apply cleaning / bad-band masking from preprocess.py
-   f. plot line + IQR envelope
-6. format plot
-7. save figure to outputs/figures
-
-Simple summary:
-config -> io_hyperspectral -> pull_spectrum_latlon -> preprocess -> pull_spectra_overlay
-
---------------------------------------------------
-WHAT A NEW USER MUST CHANGE
---------------------------------------------------
-
-Every time a new person uses this repo, they should check these items first.
-
-A) In src/config.py
--------------------
-These are the most important things to verify.
-
-1. Project/data folders
-   Make sure these point to the correct repo folders.
-
-2. H5 dataset paths
-   These must match the specific H5 product being used.
-
-   Common expected values:
-   REFLECTANCE_PATH = "ROCX/Reflectance/Reflectance_Data"
-   WAVELENGTH_PATH = "ROCX/Reflectance/Metadata/Spectral_Data/Wavelength"
-
-3. Any other metadata paths
-   For example map info / EPSG paths if used elsewhere in the repo.
-
-If the H5 product name changes, or the H5 internal structure changes, config.py is the first place to update.
-
-B) In the points CSV
---------------------
-The CSV used by overlay scripts should contain:
-
-id,lat,lon
-
-Example:
-id,lat,lon
-1,43.12345,-77.12345
-2,43.12355,-77.12365
-3,43.12370,-77.12390
-
-for this instructions document, this file containing the points is called transect_points.csv
-
-If the column names change, update the CSV reader in pull_spectra_overlay.py.
-
-C) In the raw data folder
--------------------------
-Put the target H5 file in the expected raw-data directory.
-
-Usually:
-data/raw/
-
-If there are multiple H5 files in the folder, the current script may just take the first one it finds.
-If that becomes a problem, change the script so the H5 filename is passed as an argument.
-
-D) Plot settings / thresholds
------------------------------
-If a new user wants different masking or cleaning behavior, the main places to change are:
-
-1. src/preprocess.py
-   - bad wavelength windows
-   - reflectance thresholds
-   - narrow-band masking choices
-
-2. src/scripts/pull_spectra_overlay.py
-   - include_narrow=True or False
-   - ROI size
-   - snap radius
-   - title text
-   - output filename rules
-
---------------------------------------------------
-WHAT TO CHANGE FOR COMMON USE CASES
---------------------------------------------------
-
-1) Change the points file
--------------------------
-Command:
-python -m src.scripts.pull_spectra_overlay --points data/processed/transect_points.csv --roi 9 --snap 40
-
-Change:
---points data/processed/transect_points.csv
-
-Use a different CSV path if needed.
-
-2) Change ROI size
-------------------
-Change:
---roi 9
-
-Examples:
---roi 3
---roi 9
---roi 15
-
-Meaning:
-- smaller ROI = less mixing, tighter IQR
-- larger ROI = more averaging, often wider IQR
-
-3) Change snap radius
----------------------
-Change:
---snap 40
-
-Examples:
---snap 10
---snap 40
---snap 75
-
-Meaning:
-- smaller snap radius = stricter, less relocation
-- larger snap radius = more likely to find a valid nearby pixel
-
-4) Change percentile envelope
------------------------------
-Change:
---p_lo 25 --p_hi 75
-
-Examples:
---p_lo 10 --p_hi 90
---p_lo 25 --p_hi 75
-
-Meaning:
-- 25/75 = IQR-style spread
-- 10/90 = wider variability envelope
-
-5) Change bad spectral windows
-------------------------------
-Edit:
 src/preprocess.py
+  Spectral cleaning utilities:
+  - mask atmospheric absorption windows
+  - mask invalid reflectance values
+  - prepare spectra for plotting
 
-Look for:
-- DEFAULT_BROAD_BAD_WINDOWS_NM
-- DEFAULT_NARROW_BAD_WINDOWS_NM
+src/scripts/pull_spectrum_latlon.py
+  Extract and plot one ROI spectrum from a lat/lon coordinate.
 
-This is where to change masked wavelength ranges.
+src/scripts/pull_spectra_overlay.py
+  Extract and plot multiple ROI spectra from a CSV. Points plot in CSV order.
 
-6) Turn narrow masking on or off
---------------------------------
-Edit where build_bad_band_mask(...) is called in the plotting script.
+src/scripts/roi_transect.py
+  Draw ROI boxes on a raster/orthophoto. Uses the same CSV order and rainbow
+  colors as pull_spectra_overlay.py.
 
-Example:
-include_narrow=True
-or
-include_narrow=False
+src/scripts/build_moisture_training_table.py
+  Extract spectra for field moisture points and save training arrays/tables.
 
-Use this if you want to compare:
-- broad-only masking
-- broad + narrow masking
+src/scripts/run_marmit_point.py
+src/scripts/build_marmit_calibration_table.py
+  Simplified MARMIT-style wetness fitting and calibration workflows.
+
+legacy/
+  Older duplicate or brittle one-off scripts kept for reference. New users
+  should start with src/scripts/.
 
 --------------------------------------------------
-TYPICAL COMMANDS
+COMMON COMMANDS
 --------------------------------------------------
 
-1) Overlay several spectra from a points CSV
+Check the local setup:
+python -m src.scripts.check_setup --points data/processed/transect_points.csv
+
+Overlay several spectra:
 python -m src.scripts.pull_spectra_overlay --points data/processed/transect_points.csv --roi 9 --snap 40
 
-2) Compare smaller ROI
-python -m src.scripts.pull_spectra_overlay --points data/processed/transect_points.csv --roi 3 --snap 40
+Extract one point:
+python -m src.scripts.pull_spectrum_latlon --lat 43.14125 --lon -77.50276 --roi 9 --snap 40
 
-3) Compare larger ROI
-python -m src.scripts.pull_spectra_overlay --points data/processed/transect_points.csv --roi 15 --snap 40
+Map ROI boxes over a raster:
+python -m src.scripts.roi_transect --raster path/to/ortho.tif --points data/processed/transect_points.csv --roi 9
 
-4) Test snap sensitivity
-python -m src.scripts.pull_spectra_overlay --points data/processed/transect_points.csv --roi 9 --snap 10
-python -m src.scripts.pull_spectra_overlay --points data/processed/transect_points.csv --roi 9 --snap 75
+Build moisture training data:
+python -m src.scripts.build_moisture_training_table --csv data/field/moisture_points.csv --roi 5 --snap 40
+
+Run a baseline moisture model:
+python -m src.scripts.run_moisture_baseline --npz data/processed/moisture_training_data.npz
 
 --------------------------------------------------
-HOW TO INTERPRET THE OUTPUTS
+CSV FORMAT
 --------------------------------------------------
 
-General guide:
-- median line = representative ROI spectrum
-- shaded band = within-ROI spread (percentile envelope)
-- masked gaps = bands intentionally hidden because they are unreliable
-- wider shaded envelope = more heterogeneity inside the ROI
-- very dark, low spectrum everywhere = possible water / shadow / very dark surface
-- stable shape across ROI sizes = more robust signal
-- strong changes across ROI or snap settings = possible mixed pixels or unstable sampling
+Point CSVs must contain:
+
+id,lat,lon
+
+Example:
+
+id,lat,lon
+1,43.1412490,-77.5027607
+2,43.1412646,-77.5028096
+3,43.1412883,-77.5028766
+
+Moisture training CSVs must contain:
+
+id,lat,lon,moisture
+
+Rows with nonnumeric moisture values are ignored by the moisture training
+builder.
+
+--------------------------------------------------
+COLOR ORDER
+--------------------------------------------------
+
+Point order comes from the CSV row order.
+
+The same shared rainbow color function is used for:
+
+- spectral overlays
+- ROI transect maps
+
+That means the first CSV point has the first color in both outputs, the second
+CSV point has the second color in both outputs, and so on.
+
+--------------------------------------------------
+INTERPRETING SPECTRAL OUTPUTS
+--------------------------------------------------
+
+- median line: representative ROI spectrum
+- shaded band: percentile spread inside the ROI
+- gaps: masked atmospheric or invalid bands
+- wider shading: more within-ROI heterogeneity
+- strong ROI/snap sensitivity: possible mixed pixels or unstable sampling
 
 --------------------------------------------------
 TROUBLESHOOTING
 --------------------------------------------------
 
-1) ImportError for REFLECTANCE_PATH or WAVELENGTH_PATH
-Cause:
-- missing variables in src/config.py
+No .h5 files found:
+  Put one or more H5 files in data/raw/.
 
-Fix:
-- define the H5 dataset-path constants in config.py
+Point not inside any H5 tile:
+  Check the point coordinates and confirm the matching H5 tile is in data/raw/.
 
-2) No .h5 files found
-Cause:
-- wrong raw-data folder
-- file not copied into data/raw
+No valid pixel within snap radius:
+  Increase --snap or inspect whether the point falls on invalid/no-data areas.
 
-Fix:
-- place H5 file into the correct raw directory
-- verify config.py paths
+No valid spectra after cleaning:
+  Check point placement, ROI size, reflectance scaling, and whether the surface
+  is water/shadow/mixed.
 
-3) No valid pixel within snap radius
-Cause:
-- point falls on invalid area
-- snap radius too small
-- coordinates wrong
-
-Fix:
-- increase --snap
-- verify coordinates
-- inspect point on map
-
-4) Spectrum looks too dark / too strange
-Cause:
-- point may be water, shadow, edge area, or mixed ROI
-
-Fix:
-- inspect the point on imagery
-- reduce ROI
-- compare different snap radii
-
-5) Plot crashes after edits
-Cause:
-- shape mismatch or import mismatch
-
-Fix:
-- check preprocess.py function names
-- confirm wl / med / lo / hi arrays have same shape
-- confirm config variable names match imports
-
-
---------------------------------------------------
-SUGGESTED CLEANUP / MAINTENANCE RULES
---------------------------------------------------
-
-1. Keep core workflow files:
-   - config.py
-   - io_hyperspectral.py
-   - preprocess.py
-   - pull_spectrum_latlon.py
-   - pull_spectra_overlay.py
-   - roi_transect.py
-   - roi_box.py
-
-2. Do not delete older scripts until confirming they are no longer used.
-
-3. Add cache files to .gitignore:
-   __pycache__/
-   *.pyc
-
-4. When changing the workflow, update this guide.
-
---------------------------------------------------
-MINIMUM STARTUP CHECKLIST FOR A NEW USER
---------------------------------------------------
-
-Before running anything, a new user should:
-[ ] clone the repo
-[ ] create / activate a Python environment
-[ ] install required packages
-[ ] place H5 data into data/raw
-[ ] verify src/config.py paths
-[ ] verify points CSV has id,lat,lon columns
-[ ] run a basic overlay command
-[ ] inspect saved figure in outputs
-
---------------------------------------------------
-VERY SHORT VERSION
---------------------------------------------------
-
-If someone only remembers one thing:
-
-1. Put the H5 in data/raw
-2. Check src/config.py
-3. Make sure the CSV has id,lat,lon
-4. Run pull_spectra_overlay.py
-5. Change ROI and snap to test robustness
+Different H5 product/site:
+  No path edit should be needed if the file follows NEON-style Reflectance
+  groups. The workflow discovers paths from the H5 structure.

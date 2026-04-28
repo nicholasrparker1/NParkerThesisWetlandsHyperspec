@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from src.config import DATA_RAW, FIGURES
+from src.config import FIGURES
 from src.models.marmit import (
     build_fit_window_mask,
     fit_marmit_simple,
@@ -20,15 +20,6 @@ from src.scripts.run_marmit_point import (
     lookup_point_in_csv,
     intersect_clean_spectra,
 )
-
-
-def find_h5_file() -> Path:
-    h5_files = list(DATA_RAW.glob("*.h5"))
-    if not h5_files:
-        raise FileNotFoundError(f"No .h5 files found in {DATA_RAW}")
-    return h5_files[0]
-
-
 def fit_linear_calibration(
     thickness_um: np.ndarray,
     moisture: np.ndarray,
@@ -135,16 +126,13 @@ def main() -> None:
     if missing:
         raise ValueError(f"CSV missing required columns: {missing}")
 
-    h5 = str(find_h5_file())
-    print("Using H5:", h5)
-
     alpha_wl, alpha_vals = load_alpha_csv(args.alpha_csv)
 
     dry_lat, dry_lon = lookup_point_in_csv(str(csv_path), args.dry_id)
     print(f"Using fixed dry reference: id={args.dry_id}, lat={dry_lat}, lon={dry_lon}")
 
     wl_dry, spec_dry, dry_rc = extract_clean_roi_spectrum(
-        h5,
+        None,
         dry_lat,
         dry_lon,
         snap=args.snap,
@@ -183,7 +171,7 @@ def main() -> None:
 
         try:
             wl_tgt, spec_tgt, tgt_rc = extract_clean_roi_spectrum(
-                h5,
+                None,
                 lat,
                 lon,
                 snap=args.snap,

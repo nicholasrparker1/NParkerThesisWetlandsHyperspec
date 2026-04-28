@@ -6,23 +6,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from src.config import DATA_RAW, REFLECTANCE_PATH, WAVELENGTH_PATH
-from src.io_hyperspectral import (
-    latlon_to_rowcol,
-    read_map_info,
-)
-from src.scripts.pull_spectrum_latlon import (
-    snap_to_valid_pixel,
-    read_roi_median_spectrum,
-)
-
-MAPINFO_PATH = "NOGP/Reflectance/Metadata/Coordinate_System/Map_Info"
-
-def find_h5_file() -> Path:
-    h5_files = list(DATA_RAW.glob("*.h5"))
-    if not h5_files:
-        raise FileNotFoundError(f"No .h5 files found in {DATA_RAW}")
-    return h5_files[0]
+from src.scripts.pull_spectrum_latlon import read_roi_median_spectrum, snap_to_valid_pixel
+from src.workflow import find_h5_files, find_h5_for_point, normalize_reflectance, normalize_wavelengths_nm
 
 
 def main() -> None:
@@ -39,17 +24,19 @@ def main() -> None:
         raise FileNotFoundError(f"CSV not found: {csv_path}")
 
     df = pd.read_csv(csv_path)
-
     required_cols = {"id", "lat", "lon", "moisture"}
     missing = required_cols - set(df.columns)
     if missing:
         raise ValueError(f"CSV missing required columns: {missing}")
 
-    h5 = find_h5_file()
-    print("Using H5:", h5)
+    df = df[pd.to_numeric(df["moisture"], errors="coerce").notna()].copy()
+    if df.empty:
+        raise RuntimeError("No rows with numeric moisture values were found.")
 
-    mi = read_map_info(str(h5), MAPINFO_PATH)
-    print("Program is using EPSG:", mi.get("epsg"))
+    h5_files = find_h5_files()
+    print("H5 files available:")
+    for h5 in h5_files:
+        print(" -", h5.name)
 
     spectra = []
     labels = []
@@ -57,45 +44,39 @@ def main() -> None:
     wavelengths_nm = None
 
     for _, row in df.iterrows():
-        sample_id = int(row["id"])
+        sample_id = str(row["id"]).strip()
         lat = float(row["lat"])
         lon = float(row["lon"])
         moisture = float(row["moisture"])
 
-        r0, c0 = latlon_to_rowcol(lat, lon, mi)
+        match = find_h5_for_point(lat, lon, h5_files)
+        if match is None:
+            print(f"Skipping sample {sample_id}: not inside any H5 tile.")
+            continue
 
-        r, c = snap_to_valid_pixel(
-            str(h5),
-            REFLECTANCE_PATH,
-            r0,
-            c0,
+        snap_row, snap_col = snap_to_valid_pixel(
+            str(match.h5_path),
+            match.reflectance_path,
+            match.row,
+            match.col,
             radius=args.snap,
             band=0,
         )
-
-        if r is None or c is None:
+        if snap_row is None or snap_col is None:
             print(f"Skipping sample {sample_id}: no valid pixel found within snap radius.")
             continue
 
         wl, spec, bounds = read_roi_median_spectrum(
-            str(h5),
-            REFLECTANCE_PATH,
-            WAVELENGTH_PATH,
-            r,
-            c,
+            str(match.h5_path),
+            match.reflectance_path,
+            match.wavelength_path,
+            snap_row,
+            snap_col,
             roi=args.roi,
         )
 
-        # convert µm -> nm if needed
-        wl = wl.astype(float)
-        if float(np.nanmax(wl)) < 50.0:
-            wl *= 1000.0
-
-        spec = spec.astype(float)
-
-        # scale reflectance if stored as scaled integers
-        if np.nanmax(spec) > 2.0:
-            spec = spec / 10000.0
+        wl = normalize_wavelengths_nm(wl)
+        spec = normalize_reflectance(spec)
 
         finite_bands = int(np.isfinite(spec).sum())
         if finite_bands < 50:
@@ -104,35 +85,37 @@ def main() -> None:
 
         if wavelengths_nm is None:
             wavelengths_nm = wl
-        else:
-            if len(wavelengths_nm) != len(wl):
-                raise ValueError("Wavelength length mismatch across samples.")
+        elif len(wavelengths_nm) != len(wl):
+            raise ValueError("Wavelength length mismatch across samples.")
 
         spectra.append(spec)
         labels.append(moisture)
 
         rmin, rmax, cmin, cmax = bounds
-        summary_rows.append({
-            "id": sample_id,
-            "lat": lat,
-            "lon": lon,
-            "moisture": moisture,
-            "row_raw": r0,
-            "col_raw": c0,
-            "row_snap": r,
-            "col_snap": c,
-            "snap_distance_px": float(np.sqrt((r - r0) ** 2 + (c - c0) ** 2)),
-            "roi": args.roi,
-            "rmin": rmin,
-            "rmax": rmax,
-            "cmin": cmin,
-            "cmax": cmax,
-            "finite_bands": finite_bands,
-        })
+        summary_rows.append(
+            {
+                "id": sample_id,
+                "lat": lat,
+                "lon": lon,
+                "moisture": moisture,
+                "h5_file": match.h5_path.name,
+                "row_raw": match.row,
+                "col_raw": match.col,
+                "row_snap": snap_row,
+                "col_snap": snap_col,
+                "snap_distance_px": float(np.sqrt((snap_row - match.row) ** 2 + (snap_col - match.col) ** 2)),
+                "roi": args.roi,
+                "rmin": rmin,
+                "rmax": rmax,
+                "cmin": cmin,
+                "cmax": cmax,
+                "finite_bands": finite_bands,
+            }
+        )
 
         print(
-            f"Kept sample {sample_id}: "
-            f"({lat:.7f}, {lon:.7f}) -> raw (r={r0}, c={c0}) -> snapped (r={r}, c={c}), "
+            f"Kept sample {sample_id}: ({lat:.7f}, {lon:.7f}) -> {match.h5_path.name} "
+            f"raw (r={match.row}, c={match.col}) -> snapped (r={snap_row}, c={snap_col}), "
             f"finite bands={finite_bands}"
         )
 
@@ -145,13 +128,7 @@ def main() -> None:
 
     out_npz = Path(args.out_npz)
     out_npz.parent.mkdir(parents=True, exist_ok=True)
-
-    np.savez(
-        out_npz,
-        wavelengths_nm=wavelengths_nm,
-        X_spectra=X_spectra,
-        y_moisture=y_moisture,
-    )
+    np.savez(out_npz, wavelengths_nm=wavelengths_nm, X_spectra=X_spectra, y_moisture=y_moisture)
 
     out_csv = Path(args.out_csv)
     out_csv.parent.mkdir(parents=True, exist_ok=True)

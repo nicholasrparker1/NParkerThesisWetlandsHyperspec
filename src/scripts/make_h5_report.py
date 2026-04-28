@@ -1,9 +1,10 @@
 # src/scripts/make_h5_report.py
-from src.config import DATA_RAW, OUTPUTS
+from src.config import OUTPUTS
 from src.h5_report import write_report
+from src.workflow import find_h5_files
 
 def main():
-    h5_file = list(DATA_RAW.glob("*.h5"))[0]
+    h5_file = find_h5_files()[0]
 
     out_json = OUTPUTS / f"h5_summary_{h5_file.stem}.json"
     out_txt  = OUTPUTS / f"h5_summary_{h5_file.stem}.txt"

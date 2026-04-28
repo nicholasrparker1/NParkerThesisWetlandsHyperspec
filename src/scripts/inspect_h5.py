@@ -1,10 +1,11 @@
 # src/scripts/inspect_h5.py
 from datetime import datetime
-from src.config import DATA_RAW, OUTPUTS
+from src.config import OUTPUTS
 from src.h5_inspect import h5_tree_text, keyword_matches_text
+from src.workflow import find_h5_files
 
 def main():
-    h5_file = list(DATA_RAW.glob("*.h5"))[0]
+    h5_file = find_h5_files()[0]
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     out_path = OUTPUTS / f"h5_inspection_{h5_file.stem}.txt"
