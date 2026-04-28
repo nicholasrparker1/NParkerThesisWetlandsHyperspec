@@ -6,3 +6,9 @@ __pycache__/
 *.tif
 data/raw/
 outputs/
+
+# Personal/local test point files
+data/field/moisture_points.csv
+data/field/ROCX_soil_good_points.xlsx
+data/processed/WOOD_test_daisyJordan.csv
+data/processed/bare_soil_points.csv
