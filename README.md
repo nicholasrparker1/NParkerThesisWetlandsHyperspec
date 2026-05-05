@@ -3,7 +3,16 @@
 This repo plots reflectance spectra from NEON-style hyperspectral `.h5` files at
 point locations from a CSV.
 
-## 1. Install
+## 1. Get The Code
+
+Open PowerShell where you want the project folder to live, then run:
+
+```powershell
+git clone https://github.com/nicholasrparker1/NParkerThesisWetlandsHyperspec.git
+cd NParkerThesisWetlandsHyperspec
+```
+
+## 2. Install
 
 From the repo folder:
 
@@ -12,7 +21,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-## 2. Add Data
+## 3. Add Data
 
 Put hyperspectral reflectance files here:
 
@@ -44,13 +53,13 @@ data/processed/transect_points.csv
 data/processed/reference_points.csv
 ```
 
-## 3. Check Setup
+## 4. Check Setup
 
 ```powershell
 .\.venv\Scripts\python.exe -m src.scripts.check_setup --points data/processed/transect_points.csv
 ```
 
-## 4. Plot Reflectance
+## 5. Plot Reflectance
 
 Static PNG:
 
