@@ -12,3 +12,9 @@ data/field/moisture_points.csv
 data/field/ROCX_soil_good_points.xlsx
 data/processed/WOOD_test_daisyJordan.csv
 data/processed/bare_soil_points.csv
+
+# Local NEON downloads and generated analysis tables
+data/field/NEON_soil-periodic/
+data/field/wood_neon_soil_chemistry_points.csv
+data/processed/soil_spectral_table.csv
+data/processed/wood_neon_soil_spectral_table*.csv
