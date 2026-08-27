@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
-import h5py
-import matplotlib.pyplot as plt
 import numpy as np
 
 from src.config import FIGURES
+from src.io_hyperspectral import read_roi_median_spectrum, snap_to_valid_pixel
 from src.preprocess import clean_spectrum, spectrum_for_plot
+from src.spectral_plotting import ReflectancePlotSeries, plot_reflectance_spectra
 from src.workflow import (
     find_h5_files,
     find_h5_for_point,
@@ -16,117 +17,18 @@ from src.workflow import (
 )
 
 
-def snap_to_valid_pixel(
-    h5_path: str,
-    cube_path: str,
-    r0: int,
-    c0: int,
-    *,
-    radius: int = 50,
-    band: int = 0,
-) -> tuple[int | None, int | None]:
-    """
-    Read one band over a small window and return the nearest valid pixel.
-    """
-    with h5py.File(h5_path, "r") as f:
-        cube = f[cube_path]
-        rows, cols, _ = cube.shape
-
-        rmin = max(0, r0 - radius)
-        rmax = min(rows - 1, r0 + radius)
-        cmin = max(0, c0 - radius)
-        cmax = min(cols - 1, c0 + radius)
-
-        win = cube[rmin : rmax + 1, cmin : cmax + 1, band]
-
-    valid = win > 0
-    if not np.any(valid):
-        return None, None
-
-    rr, cc = np.where(valid)
-    rr_full = rr + rmin
-    cc_full = cc + cmin
-    d2 = (rr_full - r0) ** 2 + (cc_full - c0) ** 2
-    k = int(np.argmin(d2))
-    return int(rr_full[k]), int(cc_full[k])
-
-
-def read_roi_stats_spectrum(
-    h5_path: str,
-    cube_path: str,
-    wl_path: str,
-    r: int,
-    c: int,
-    roi: int,
-    p_lo: float = 25,
-    p_hi: float = 75,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple[int, int, int, int]]:
-    """
-    Return wavelength, ROI median, lower percentile, upper percentile, and bounds.
-    """
-    if roi < 1 or roi % 2 == 0:
-        raise ValueError("--roi must be an odd integer >= 1")
-
-    half = roi // 2
-
-    with h5py.File(h5_path, "r") as f:
-        cube = f[cube_path]
-        wl = f[wl_path][:]
-
-        rows, cols, _ = cube.shape
-        rmin = max(0, r - half)
-        rmax = min(rows - 1, r + half)
-        cmin = max(0, c - half)
-        cmax = min(cols - 1, c + half)
-
-        win = cube[rmin : rmax + 1, cmin : cmax + 1, :].astype(float)
-
-    win[win < 0] = np.nan
-    n_pix = win.shape[0] * win.shape[1]
-    win2 = win.reshape(n_pix, win.shape[2])
-
-    valid_counts = np.sum(np.isfinite(win2), axis=0)
-    min_valid = max(5, int(0.20 * n_pix))
-
-    med = np.nanmedian(win2, axis=0)
-    lo = np.nanpercentile(win2, p_lo, axis=0)
-    hi = np.nanpercentile(win2, p_hi, axis=0)
-
-    med[valid_counts < min_valid] = np.nan
-    lo[valid_counts < min_valid] = np.nan
-    hi[valid_counts < min_valid] = np.nan
-
-    return wl, med, lo, hi, (rmin, rmax, cmin, cmax)
-
-
-def read_roi_median_spectrum(
-    h5_path: str,
-    cube_path: str,
-    wl_path: str,
-    r: int,
-    c: int,
-    roi: int,
-) -> tuple[np.ndarray, np.ndarray, tuple[int, int, int, int]]:
-    wl, med, _lo, _hi, bounds = read_roi_stats_spectrum(
-        h5_path,
-        cube_path,
-        wl_path,
-        r,
-        c,
-        roi,
-        p_lo=25,
-        p_hi=75,
-    )
-    return wl, med, bounds
-
-
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--lat", type=float, required=True)
     ap.add_argument("--lon", type=float, required=True)
-    ap.add_argument("--snap", type=int, default=75, help="Snap radius in pixels")
+    ap.add_argument("--snap", type=int, default=5, help="Snap radius in pixels")
     ap.add_argument("--roi", type=int, default=1, help="Odd integer ROI size; 1 = single pixel")
+    ap.add_argument("--out", default=None, help="Output PNG path")
+    ap.add_argument("--show", action="store_true", help="Open the Matplotlib window after saving")
     args = ap.parse_args()
+
+    if args.roi < 1 or args.roi % 2 == 0:
+        raise ValueError("--roi must be an odd integer >= 1")
 
     h5_files = find_h5_files()
     match = find_h5_for_point(args.lat, args.lon, h5_files)
@@ -208,60 +110,26 @@ def main() -> None:
     if not np.any(good_clean):
         print("WARNING: No valid points after cleaning. Plotting absorption-masked spectrum anyway.")
 
-    plt.figure(figsize=(10, 4.8))
-    plt.plot(wl_plot, spec_plot, linewidth=2.2)
-
-    for a, b in [(920, 960), (1110, 1145), (1340, 1450), (1800, 1950)]:
-        plt.axvspan(a, b, alpha=0.12)
-
-    plt.xlabel("Wavelength (nm)", fontsize=12)
-    plt.ylabel("Reflectance", fontsize=12)
-    plt.title(
-        f"Median ROI Spectrum @ ({args.lat:.6f}, {args.lon:.6f}) -> r={row}, c={col}\n"
-        f"ROI: {args.roi}x{args.roi} pixels (median) | Atmospheric residual bands removed",
-        fontsize=13,
-    )
-
-    if np.any(good_clean):
-        y_top = float(np.nanpercentile(spec_clean[good_clean], 98) * 1.15)
-    else:
-        good_plot = np.isfinite(wl_plot) & np.isfinite(spec_plot)
-        if not np.any(good_plot):
-            raise RuntimeError("No valid spectrum to plot. Check scaling or ROI location.")
-        y_top = float(np.nanpercentile(spec_plot[good_plot], 98) * 1.15)
-
-    if not np.isfinite(y_top) or y_top <= 0:
-        y_top = 0.2
-    plt.ylim(0, y_top)
-
-    plt.grid(True, linestyle="--", alpha=0.3)
-    plt.minorticks_on()
-    plt.tight_layout()
-
-    meta_text = (
-        f"H5: {match.h5_path.name}\n"
-        f"Snap radius: {args.snap}px\n"
-        f"ROI: {args.roi}x{args.roi}px (median)\n"
-        f"Bands (raw): {wl.size}\n"
-        f"Bands (used): {wl_clean.size}"
-    )
-    plt.text(
-        0.99,
-        0.98,
-        meta_text,
-        transform=plt.gca().transAxes,
-        ha="right",
-        va="top",
-        fontsize=9,
-        bbox=dict(boxstyle="round", facecolor="white", alpha=0.85),
-    )
-
-    outpath = FIGURES / (
+    default_outpath = FIGURES / (
         f"spectrum_roi{args.roi}_lat{args.lat:.5f}_lon{args.lon:.5f}_r{row}_c{col}_snap{args.snap}.png"
     )
-    outpath.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(outpath, dpi=300)
-    plt.show()
+    outpath = Path(args.out) if args.out else default_outpath
+    site = match.site or "ROCX"
+    plot_reflectance_spectra(
+        [
+            ReflectancePlotSeries(
+                label=f"lat {args.lat:.6f}, lon {args.lon:.6f}",
+                wavelengths_nm=wl_plot,
+                reflectance=spec_plot,
+            )
+        ],
+        outpath=outpath,
+        footer=(
+            f"Data source: NEON {site} airborne hyperspectral reflectance; "
+            f"single point; ROI size: {args.roi} m x {args.roi} m; snap={args.snap}."
+        ),
+        show=args.show,
+    )
     print("Saved:", outpath)
 
 

@@ -1,0 +1,124 @@
+ 
+  
+ 
+ 
+April and September 2025 | Page 1 
+Field Indicators of Hydric Soils in the United States, Version 9.0 
+Errata—Updated February 2026 
+Corrections for Version 9.1 (April 2025) 
+Page 6: Observe and Document the Soil 
+Change 
+Indicators that have requirements that allow a chroma of greater than 2 can also have a chroma of 
+greater than 2 above the layer or layers meeting the requirement of the indicator. Indicators that 
+require a chroma of 2 or less only permit a chroma of 2 or more within a zone thinner than 6 inches 
+above it, and the remainder of the material above the indicator must have a chroma of 2 or less (fig. 4). 
+to 
+Indicators that have requirements that allow a chroma of more than 2 can also have a chroma of more 
+than 2 above the layer or layers meeting the requirement of the indicator. Indicators that require a 
+chroma of 2 or less only permit a chroma of more than 2 within a zone thinner than 6 inches above it, 
+and the remainder of the material above the indicator must have a chroma of 2 or less (fig. 4). 
+Page 6: Figure 4 
+Change 
+The lower portion of this soil profile meets the color and depth requirements of indicator F3, Depleted 
+Matrix; however, the upper portion of the profile contains a layer with chroma of 2 or more that is more 
+than 15 cm (6 inches) thick. As a result, the requirements of indicator F3, Depleted Matrix, are not met. 
+to 
+The lower portion of this soil profile meets the color and depth requirements of indicator F3, Depleted 
+Matrix; however, the upper portion of the profile contains a layer with chroma of more than 2 that is 
+more than 15 cm (6 inches) thick. As a result, the requirements of indicator F3, Depleted Matrix, are not 
+met. 
+Corrections for Version 9.2 (September 2025) 
+Throughout 
+Wording changes to improve consistency 
+Page 12: A2 User Notes 
+Change 
+The surface horizon of most histic epipedons has organic soil material 20 cm (8 inches) or more thick... 
+to 
+Most histic epipedons are composed of surface horizons with organic soil material 20 cm (8 inches) or 
+more thick… 
+  
+
+  
+ 
+April and September 2025 | Page 2 
+Page 15: A11 
+Change 
+… chroma of 2 or less starting at a depth of 15 cm (6 inches) or less from the soil surface and extend to 
+the depleted or gleyed matrix. 
+to 
+…chroma of 2 or less starting at a depth of less than 15 cm (6 inches) from the soil surface and extend to 
+the depleted or gleyed matrix. 
+Page 23: S7 
+Change 
+A layer 10 cm (4 inches) thick, starting at a depth of 15 cm (6 inches) or less from the soil surface, with a 
+matrix value of 3 or less and chroma of 1 or less. 
+to 
+A layer 10 cm (4 inches) or more thick, starting at a depth of 15 cm (6 inches) or less from the soil 
+surface, with a matrix value of 3 or less and chroma of 1 or less. 
+Page 25: S11 User Notes 
+Change 
+In adjacent upland areas, redox concentrations are absent or are only observed at a depth 15 cm (6 
+inches) or more from the soil surface. 
+to 
+In adjacent upland areas, redox concentrations are absent or are only observed at a depth of more than 
+10 cm (6 inches) from the soil surface. 
+Page 25: S12 User Notes 
+Change 
+This indicator is similar to A9 but allows chroma of 1 or more but not greater than 2. 
+to 
+This indicator is similar to A9 but allows chroma of more than 1 but not more than 2. 
+Page 39: Diffuse Boundary 
+Change 
+The color grade is commonly 2 mm or more wide. 
+to 
+The color grade is more than 2 mm wide. 
+Page 39: Distinct 
+Change 
+1. Delta hue equal to 0, then  
+a. delta value of 2 or less and delta chroma 1 to less than 4, or  
+b. delta value of 2 to less than 4 and delta chroma less than 4. 
+to 
+1. Delta hue equal to 0, then  
+a. delta value of 2 or less and delta chroma of more than 1 to less than 4, or  
+b. delta value of more than 2 to less than 4 and delta chroma of less than 4.
+
+ 
+  
+ 
+ 
+February 2026 | Page 3 USDA is an equal opportunity provider, employer, and lender.  
+Corrections for Version 9.3 (February 2026) 
+Page 2: Introduction 
+Change 
+Prolonged anaerobic conditions promote certain biogeochemical processes, such as the accumulation of 
+organic matter, denitrification, and the chemical transformation and translocation of oxidized iron, 
+manganese, and sulfur species. 
+to 
+Prolonged anaerobic conditions promote certain biogeochemical processes, such as the accumulation of 
+organic matter, denitrification, and the chemical transformation and translocation of oxidized iron, 
+manganese, and sulfur species as these compounds become reduced.  
+Page 6: Observe and Document the Soil 
+Change 
+Indicators that require a chroma of 2 or less only permit a chroma of more than 2 within a zone thinner 
+than 6 inches above it… 
+to 
+Indicators that require a chroma of 2 or less only permit a chroma of more than 2 within a zone thinner 
+than 15 cm (6 inches) above it… 
+Page 25: S11 User Notes 
+Change 
+In adjacent upland areas, redox concentrations are absent or are only observed at a depth of more than 
+10 cm (6 inches) from the soil surface. 
+to 
+In adjacent upland areas, redox concentrations are absent or are only observed at a depth of more than 
+10 cm (4 inches) from the soil surface. 
+Page 44: Glossary 
+Change 
+Organic soil material. Soil material that is saturated with water for long periods or artificially drained 
+and, excluding live roots, has 12 percent or more (by weight) organic carbon. If the soil is never 
+saturated for more than a few days, it contains 20 percent or more organic carbon. Organic soil 
+material includes muck, mucky peat, and peat. See “Soil Taxonomy” (Soil Survey Staff, 1999) for a 
+complete definition. 
+to 
+Organic soil material. Soil material that has 12 percent or more (by weight) organic carbon. Terms 
+used in lieu of texture for organic materials of soil horizons saturated for 30 or more cumulative days 
+in normal years, or artificially drained, include muck (Oa), mucky peat (Oe), and peat (Oi). 

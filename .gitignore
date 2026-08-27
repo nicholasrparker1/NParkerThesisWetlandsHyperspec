@@ -1,4 +1,4 @@
-__pycache__/
+﻿__pycache__/
 *.pyc
 .venv/
 .vscode/
@@ -18,3 +18,16 @@ data/field/NEON_soil-periodic/
 data/field/wood_neon_soil_chemistry_points.csv
 data/processed/soil_spectral_table.csv
 data/processed/wood_neon_soil_spectral_table*.csv
+data/processed/hydric_evidence_table.csv
+data/processed/aerial_wetness_method_comparison*.csv
+data/processed/marmit_calibration_table*.csv
+data/processed/moisture_training_data.npz
+data/processed/moisture_training_summary.csv
+data/processed/neon_aop_*download_list.csv
+data/processed/neon_aop_required_tile_manifest.csv
+data/processed/neon_aop_tile_requirement_audit.xlsx
+data/processed/NEON_Soil_Wetland_Context_Table.xlsx
+data/processed/NEON_Soil_Wetland_Cover_Classification.xlsx
+data/processed/point_cover_classification_*.csv
+data/field/NEON_Master_Soil_Table.xlsx
+

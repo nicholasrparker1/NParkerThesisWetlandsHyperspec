@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from src.scripts.pull_spectrum_latlon import read_roi_median_spectrum, snap_to_valid_pixel
+from src.io_hyperspectral import read_roi_median_spectrum, snap_to_valid_pixel
 from src.workflow import find_h5_files, find_h5_for_point, normalize_reflectance, normalize_wavelengths_nm
 
 

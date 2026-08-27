@@ -1,4 +1,4 @@
-NParkerThesisWetlandsHyperspec
+﻿NParkerThesisWetlandsHyperspec
 Workflow Guide
 ==================================================
 
@@ -12,9 +12,12 @@ The normal user workflow is:
 1. Put one or more .h5 files in data/raw/
 2. Prepare a CSV with id,lat,lon columns
 3. Install dependencies with pip install -r requirements.txt
-4. Run the setup check
-5. Run a script from src/scripts/
-6. Inspect figures in outputs/figures and tables in outputs/tables
+4. Run the guided menu or setup check
+5. Plot spectra and screen whether points are soil-like
+6. Build soil/moisture spectral tables
+7. Build a compact hydric evidence table
+8. Analyze soil chemistry correlations or moisture models
+9. Inspect figures in outputs/figures and tables in outputs/tables
 
 The code automatically discovers:
 
@@ -26,6 +29,11 @@ The code automatically discovers:
 - which H5 tile contains each point
 
 A normal user should not need to edit H5 paths in src/config.py.
+
+Raw NEON H5 files, TIFFs, wetland GeoPackages, downloaded NEON soil-periodic
+folders, and generated analysis outputs are local data products and should not
+be committed to Git. The tracked point CSVs are small examples of the expected
+input format.
 
 --------------------------------------------------
 CORE FILES
@@ -59,20 +67,36 @@ src/scripts/pull_spectrum_latlon.py
 src/scripts/pull_spectra_overlay.py
   Extract and plot multiple ROI spectra from a CSV. Points plot in CSV order.
 
-src/scripts/roi_transect.py
-  Draw ROI boxes on a raster/orthophoto. Uses the same CSV order and rainbow
-  colors as pull_spectra_overlay.py.
+src/scripts/classify_point_cover.py
+  Screen point spectra as bare soil, vegetation, water, mixed, or low-signal
+  using NDVI/NDWI-style diagnostics. This helps decide which points are usable
+  for soil retrieval.
+
+src/scripts/build_soil_spectral_table.py
+  Extract cleaned soil spectra and combine them with soil chemistry labels.
+
+src/scripts/analyze_soil_spectral_correlations.py
+  Screen wavelengths against SOM, carbon, and nitrogen labels.
+
+src/scripts/build_hydric_evidence_table.py
+  Build a compact modeling-ready evidence table from soil spectra and optional
+  cover-screening outputs.
 
 src/scripts/build_moisture_training_table.py
   Extract spectra for field moisture points and save training arrays/tables.
 
-src/scripts/run_marmit_point.py
-src/scripts/build_marmit_calibration_table.py
-  Simplified MARMIT-style wetness fitting and calibration workflows.
+src/scripts/run_moisture_baseline.py
+  Fit a prototype baseline model from extracted spectra to measured moisture.
 
-legacy/
-  Older duplicate or brittle one-off scripts kept for reference. New users
-  should start with src/scripts/.
+src/scripts/build_wetland_context.py
+src/scripts/classify_wetland_context_cover.py
+  Add NWI wetland context and cover/usability screening to NEON soil plots.
+  The strict "close by" wetland evidence threshold is inside or within 10 m of
+  a mapped NWI wetland polygon.
+
+src/scripts/compare_aerial_wetness_methods.py
+  Optional exploratory wetness diagnostics. These are relative/provisional, not
+  the main calibrated soil-retrieval workflow.
 
 --------------------------------------------------
 COMMON COMMANDS
@@ -81,17 +105,29 @@ COMMON COMMANDS
 Check the local setup:
 python -m src.scripts.check_setup --points data/processed/transect_points.csv
 
+Open the guided menu:
+python -m src.scripts.menu
+
 Overlay several spectra:
-python -m src.scripts.pull_spectra_overlay --points data/processed/transect_points.csv --roi 9 --snap 40
+python -m src.scripts.pull_spectra_overlay --points data/processed/transect_points.csv --roi 3 --snap 40
 
 Extract one point:
-python -m src.scripts.pull_spectrum_latlon --lat 43.14125 --lon -77.50276 --roi 9 --snap 40
+python -m src.scripts.pull_spectrum_latlon --lat 43.14125 --lon -77.50276 --roi 3 --snap 40
 
-Map ROI boxes over a raster:
-python -m src.scripts.roi_transect --raster path/to/ortho.tif --points data/processed/transect_points.csv --roi 9
+Screen point cover/usability:
+python -m src.scripts.classify_point_cover --points data/processed/transect_points.csv --roi 3 --snap 40
+
+Build a soil spectral table:
+python -m src.scripts.build_soil_spectral_table --soil-xlsx data/field/NEON_Master_Soil_Table.xlsx --roi 3 --snap 40
+
+Analyze soil chemistry correlations:
+python -m src.scripts.analyze_soil_spectral_correlations --table data/processed/soil_spectral_table.csv
+
+Build a hydric evidence table:
+python -m src.scripts.build_hydric_evidence_table --soil-spectral-table data/processed/soil_spectral_table.csv --wetland-context-table data/processed/NEON_Soil_Wetland_Context_Table.xlsx
 
 Build moisture training data:
-python -m src.scripts.build_moisture_training_table --csv data/field/moisture_points.csv --roi 5 --snap 40
+python -m src.scripts.build_moisture_training_table --csv data/field/moisture_points.csv --roi 3 --snap 40
 
 Run a baseline moisture model:
 python -m src.scripts.run_moisture_baseline --npz data/processed/moisture_training_data.npz
@@ -124,13 +160,9 @@ COLOR ORDER
 
 Point order comes from the CSV row order.
 
-The same shared rainbow color function is used for:
-
-- spectral overlays
-- ROI transect maps
-
-That means the first CSV point has the first color in both outputs, the second
-CSV point has the second color in both outputs, and so on.
+Spectral overlays use the shared rainbow color function. Points are colored in
+CSV row order, so the first CSV point has the first color, the second point has
+the second color, and so on.
 
 --------------------------------------------------
 INTERPRETING SPECTRAL OUTPUTS
@@ -162,3 +194,4 @@ No valid spectra after cleaning:
 Different H5 product/site:
   No path edit should be needed if the file follows NEON-style Reflectance
   groups. The workflow discovers paths from the H5 structure.
+

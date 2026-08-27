@@ -49,6 +49,24 @@ class MarmitFitResult:
     sse_grid: np.ndarray
 
 
+@dataclass
+class MarmitMixedFitResult:
+    thickness_um: float
+    wet_fraction: float
+    equivalent_water_thickness_um: float
+    rmse: float
+    r2: float
+    wavelengths_nm: np.ndarray
+    observed_reflectance: np.ndarray
+    modeled_reflectance: np.ndarray
+    dry_reflectance: np.ndarray
+    valid_mask: np.ndarray
+    residuals_full: np.ndarray
+    thickness_grid_um: np.ndarray
+    wet_fraction_grid: np.ndarray
+    sse_grid: np.ndarray
+
+
 def _as_float_1d(x: np.ndarray, name: str) -> np.ndarray:
     x = np.asarray(x, dtype=float).ravel()
     if x.ndim != 1:
@@ -158,6 +176,25 @@ def model_wet_reflectance_simple(
     return dry * (tw ** 2)
 
 
+def model_wet_reflectance_mixed(
+    dry_reflectance: np.ndarray,
+    alpha_water: np.ndarray,
+    thickness_um: float,
+    wet_fraction: float,
+) -> np.ndarray:
+    """
+    MARMIT-adjacent mixed wet/dry model:
+        R_model = (1 - epsilon) * R_dry + epsilon * R_dry * exp(-2 alpha L)
+
+    epsilon is constrained conceptually to [0, 1] and represents the fraction
+    of the observed surface behaving like water-film-covered soil.
+    """
+    dry = _as_float_1d(dry_reflectance, "dry_reflectance")
+    attenuated = model_wet_reflectance_simple(dry, alpha_water, thickness_um)
+    eps = float(wet_fraction)
+    return (1.0 - eps) * dry + eps * attenuated
+
+
 def fit_marmit_simple(
     wavelengths_nm: np.ndarray,
     observed_reflectance: np.ndarray,
@@ -245,6 +282,114 @@ def fit_marmit_simple(
         valid_mask=valid,
         residuals_full=residuals_full,
         thickness_grid_um=grid,
+        sse_grid=sse,
+    )
+
+
+def fit_marmit_mixed(
+    wavelengths_nm: np.ndarray,
+    observed_reflectance: np.ndarray,
+    dry_reflectance: np.ndarray,
+    alpha_water: np.ndarray,
+    *,
+    thickness_min_um: float = 0.0,
+    thickness_max_um: float = 2000.0,
+    n_grid: int = 2001,
+    extra_mask: Optional[np.ndarray] = None,
+) -> MarmitMixedFitResult:
+    """
+    Fit effective water-film thickness and wet surface fraction.
+
+    For each candidate L, epsilon is solved by constrained least squares:
+        obs ~= dry + epsilon * (dry * exp(-2 alpha L) - dry)
+
+    This keeps the search one-dimensional while adding the key partial-wetness
+    term used by MARMIT-style models.
+    """
+    wl = _as_float_1d(wavelengths_nm, "wavelengths_nm")
+    obs = _as_float_1d(observed_reflectance, "observed_reflectance")
+    dry = _as_float_1d(dry_reflectance, "dry_reflectance")
+    alpha = _as_float_1d(alpha_water, "alpha_water")
+
+    if not (len(wl) == len(obs) == len(dry) == len(alpha)):
+        raise ValueError("All input vectors must have the same length.")
+
+    valid = build_valid_mask(
+        wl,
+        obs,
+        dry,
+        alpha,
+        extra_mask=extra_mask,
+    )
+
+    if valid.sum() < 10:
+        raise ValueError("Not enough valid wavelengths to fit the model.")
+
+    obs_v = obs[valid]
+    dry_v = dry[valid]
+    alpha_v = alpha[valid]
+
+    median_darkening = float(np.nanmedian(dry_v - obs_v))
+    if median_darkening <= 0:
+        print(
+            "WARNING: target is not generally darker than dry reference "
+            "over the fit window. The pair may be physically questionable."
+        )
+
+    grid = np.linspace(thickness_min_um, thickness_max_um, n_grid)
+    eps_grid = np.empty_like(grid)
+    sse = np.empty_like(grid)
+
+    y = obs_v - dry_v
+    for i, L in enumerate(grid):
+        attenuated = model_wet_reflectance_simple(dry_v, alpha_v, float(L))
+        x = attenuated - dry_v
+        denom = float(np.nansum(x ** 2))
+        if denom <= 0.0:
+            eps = 0.0
+        else:
+            eps = float(np.nansum(x * y) / denom)
+        eps = float(np.clip(eps, 0.0, 1.0))
+        eps_grid[i] = eps
+        mod = dry_v + eps * x
+        sse[i] = np.nansum((obs_v - mod) ** 2)
+
+    best_idx = int(np.argmin(sse))
+    best_L = float(grid[best_idx])
+    best_eps = float(eps_grid[best_idx])
+
+    modeled_full = np.full_like(obs, np.nan, dtype=float)
+    modeled_full[valid] = model_wet_reflectance_mixed(
+        dry_v,
+        alpha_v,
+        best_L,
+        best_eps,
+    )
+
+    residuals_full = np.full_like(obs, np.nan, dtype=float)
+    residuals_full[valid] = obs_v - modeled_full[valid]
+
+    resid = residuals_full[valid]
+    rmse = float(np.sqrt(np.mean(resid ** 2)))
+
+    ss_res = float(np.sum(resid ** 2))
+    ss_tot = float(np.sum((obs_v - np.mean(obs_v)) ** 2))
+    r2 = float(1.0 - ss_res / ss_tot) if ss_tot > 0 else np.nan
+
+    return MarmitMixedFitResult(
+        thickness_um=best_L,
+        wet_fraction=best_eps,
+        equivalent_water_thickness_um=best_L * best_eps,
+        rmse=rmse,
+        r2=r2,
+        wavelengths_nm=wl,
+        observed_reflectance=obs,
+        modeled_reflectance=modeled_full,
+        dry_reflectance=dry,
+        valid_mask=valid,
+        residuals_full=residuals_full,
+        thickness_grid_um=grid,
+        wet_fraction_grid=eps_grid,
         sse_grid=sse,
     )
 

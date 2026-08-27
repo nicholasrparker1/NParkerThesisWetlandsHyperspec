@@ -157,7 +157,6 @@ def read_pixel_spectrum_from_file(h5_path: str, row: int, col: int):
         row,
         col,
     )
-    return wavelengths, spectrum
 
 def read_pixel_spectrum_from_file_with_snap(
     h5_path: str,
@@ -191,24 +190,23 @@ def read_pixel_spectrum_from_file_with_snap(
 
     return wavelengths, spectrum, used_row, used_col
 
-def read_roi_median_spectrum_from_file(
+def read_roi_stats_spectrum(
     h5_path: str,
+    cube_path: str,
+    wl_path: str,
     row: int,
     col: int,
     roi: int,
-):
-    """
-    Read an ROI median spectrum using auto-discovered reflectance and wavelength paths.
-    Returns (wavelengths, median_spectrum, bounds).
-    """
+    p_lo: float = 25,
+    p_hi: float = 75,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple[int, int, int, int]]:
+    """Return wavelength, ROI median, lower percentile, upper percentile, and bounds."""
     if roi < 1 or roi % 2 == 0:
         raise ValueError("roi must be an odd integer >= 1")
 
-    paths = discover_neon_h5_paths(h5_path)
-
     with h5py.File(h5_path, "r") as f:
-        cube = f[paths["reflectance_path"]]
-        wl = f[paths["wavelength_path"]][:]
+        cube = f[cube_path]
+        wl = f[wl_path][:]
 
         rows, cols, _ = cube.shape
         half = roi // 2
@@ -220,9 +218,7 @@ def read_roi_median_spectrum_from_file(
 
         win = cube[rmin:rmax + 1, cmin:cmax + 1, :].astype(np.float32)
 
-    win = win / SCALING.scale
-    win[win == (SCALING.fill_raw / SCALING.scale)] = np.nan
-    win[win <= SCALING.min_valid] = np.nan
+    win = _scale_and_mask_cube_window(win)
 
     n_pix = win.shape[0] * win.shape[1]
     win2 = win.reshape(n_pix, win.shape[2])
@@ -230,10 +226,55 @@ def read_roi_median_spectrum_from_file(
     valid_counts = np.sum(np.isfinite(win2), axis=0)
     min_valid = max(1, int(0.20 * n_pix))
 
-    spec_med = np.nanmedian(win2, axis=0)
-    spec_med[valid_counts < min_valid] = np.nan
+    med = np.nanmedian(win2, axis=0)
+    lo = np.nanpercentile(win2, p_lo, axis=0)
+    hi = np.nanpercentile(win2, p_hi, axis=0)
 
-    return wl, spec_med, (rmin, rmax, cmin, cmax)
+    med[valid_counts < min_valid] = np.nan
+    lo[valid_counts < min_valid] = np.nan
+    hi[valid_counts < min_valid] = np.nan
+
+    return wl, med, lo, hi, (rmin, rmax, cmin, cmax)
+
+
+def read_roi_median_spectrum(
+    h5_path: str,
+    cube_path: str,
+    wl_path: str,
+    row: int,
+    col: int,
+    roi: int,
+) -> tuple[np.ndarray, np.ndarray, tuple[int, int, int, int]]:
+    wl, med, _lo, _hi, bounds = read_roi_stats_spectrum(
+        h5_path,
+        cube_path,
+        wl_path,
+        row,
+        col,
+        roi,
+    )
+    return wl, med, bounds
+
+
+def read_roi_median_spectrum_from_file(
+    h5_path: str,
+    row: int,
+    col: int,
+    roi: int,
+):
+    """
+    Read an ROI median spectrum using auto-discovered reflectance and wavelength paths.
+    Returns (wavelengths, median_spectrum, bounds).
+    """
+    paths = discover_neon_h5_paths(h5_path)
+    return read_roi_median_spectrum(
+        h5_path,
+        paths["reflectance_path"],
+        paths["wavelength_path"],
+        row,
+        col,
+        roi,
+    )
 
 # -----------------------------
 # Reflectance conventions
@@ -383,6 +424,38 @@ def find_nearest_valid_pixel(
         idx = np.argmin(dist2)
 
         return int(rr[idx] + rmin), int(cc[idx] + cmin)
+
+
+def snap_to_valid_pixel(
+    h5_path: str,
+    cube_path: str,
+    row: int,
+    col: int,
+    *,
+    radius: int = 50,
+    band: int = 0,
+) -> tuple[int | None, int | None]:
+    """
+    Return the nearest valid pixel inside a true Euclidean radius.
+
+    Unlike find_nearest_valid_pixel, this returns (None, None) when no valid
+    pixel is available so CLI scripts can print clearer location-specific errors.
+    """
+    try:
+        used_row, used_col = find_nearest_valid_pixel(
+            h5_path,
+            cube_path,
+            row,
+            col,
+            search_radius=radius,
+            band=band,
+        )
+    except RuntimeError:
+        return None, None
+
+    if (used_row - row) ** 2 + (used_col - col) ** 2 > radius ** 2:
+        return None, None
+    return used_row, used_col
 
 
 # -----------------------------

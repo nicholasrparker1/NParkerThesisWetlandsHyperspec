@@ -5,12 +5,12 @@ import html
 import json
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from src.config import FIGURES
+from src.io_hyperspectral import read_roi_stats_spectrum, snap_to_valid_pixel
 from src.preprocess import build_bad_band_mask, build_invalid_value_mask
-from src.scripts.pull_spectrum_latlon import read_roi_stats_spectrum, snap_to_valid_pixel
+from src.spectral_plotting import ReflectancePlotSeries, plot_reflectance_spectra
 from src.workflow import (
     find_h5_files,
     find_h5_for_point,
@@ -35,6 +35,27 @@ def _finite_float_list(values: np.ndarray) -> list[float | None]:
     return out
 
 
+def _figure_title() -> str:
+    return "Reflectance vs. Wavelength"
+
+
+def _roi_size_text(roi: int) -> str:
+    return f"ROI size: {roi} m x {roi} m"
+
+
+def _source_note(points_path: Path, spectra: list[dict[str, object]] | None = None) -> str:
+    site = None
+    if spectra:
+        h5_names = sorted({str(spectrum.get("h5", "")) for spectrum in spectra if spectrum.get("h5")})
+        if len(h5_names) == 1:
+            parts = h5_names[0].split("_")
+            if len(parts) >= 3 and parts[0] == "NEON":
+                site = parts[2]
+
+    source = f"NEON {site} airborne hyperspectral reflectance" if site else "NEON airborne hyperspectral reflectance"
+    return f"Data source: {source}; points: {points_path.name}."
+
+
 def _write_interactive_html(
     outpath: Path,
     points_path: Path,
@@ -53,7 +74,7 @@ def _write_interactive_html(
         "spectra": spectra,
     }
     data_json = json.dumps(payload, allow_nan=False)
-    title = f"Interactive ROI Spectra: {points_path.name}"
+    title = _figure_title()
     escaped_title = html.escape(title)
 
     html_text = f"""<!doctype html>
@@ -106,7 +127,7 @@ def _write_interactive_html(
 </head>
 <body>
   <h1>{escaped_title}</h1>
-  <p class="meta">ROI={roi}, snap={snap}, percentile band={p_lo:g}-{p_hi:g}. Hover near a curve to inspect wavelength and reflectance.</p>
+  <p class="meta">{html.escape(_source_note(points_path, spectra))} {html.escape(_roi_size_text(roi))} | Snap={snap} | Percentile band={p_lo:g}-{p_hi:g}. Hover near a curve to inspect wavelength and reflectance.</p>
   <div id="wrap">
     <canvas id="plot"></canvas>
     <div id="tooltip"></div>
@@ -338,7 +359,7 @@ def _write_interactive_html(
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--points", required=True, help="CSV with columns: id,lat,lon")
-    ap.add_argument("--snap", type=int, default=75, help="Snap radius in pixels")
+    ap.add_argument("--snap", type=int, default=5, help="Snap radius in pixels")
     ap.add_argument("--roi", type=int, default=9, help="Odd integer ROI size")
     ap.add_argument("--out", default=None, help="Output PNG path")
     ap.add_argument("--interactive", action="store_true", help="Also write a hoverable HTML plot")
@@ -346,6 +367,8 @@ def main() -> None:
     ap.add_argument("--show", action="store_true", help="Open the Matplotlib window after saving")
     ap.add_argument("--p_lo", type=float, default=25.0, help="Lower percentile")
     ap.add_argument("--p_hi", type=float, default=75.0, help="Upper percentile")
+    ap.add_argument("--title", default=None, help="Optional plot title override")
+    ap.add_argument("--subtitle", default=None, help="Optional second title line")
     args = ap.parse_args()
 
     if args.roi < 1 or args.roi % 2 == 0:
@@ -360,10 +383,9 @@ def main() -> None:
     for h5 in h5_files:
         print(" -", h5.name)
 
-    fig, ax = plt.subplots(figsize=(11, 6))
     colors = rainbow_colors(len(points))
     n_plotted = 0
-    global_max = 0.0
+    plot_series: list[ReflectancePlotSeries] = []
     interactive_spectra: list[dict[str, object]] = []
 
     for point_index, point in enumerate(points):
@@ -438,13 +460,18 @@ def main() -> None:
             print(f"WARNING Point {point.id}: no valid points after cleaning; skipping curve.")
             continue
 
-        local_max = float(np.nanpercentile(med_plot[good_plot], 98))
-        if np.isfinite(local_max):
-            global_max = max(global_max, local_max)
-
         color = colors[point_index]
-        ax.plot(wl, med_plot, linewidth=2.2, label=point.id, color=color)
         n_plotted += 1
+        plot_series.append(
+            ReflectancePlotSeries(
+                label=point.id,
+                wavelengths_nm=wl,
+                reflectance=med_plot,
+                color=color,
+                p_low=lo_plot,
+                p_high=hi_plot,
+            )
+        )
         interactive_spectra.append(
             {
                 "id": point.id,
@@ -461,56 +488,22 @@ def main() -> None:
             }
         )
 
-        if np.any(np.isfinite(lo_plot)) and np.any(np.isfinite(hi_plot)):
-            ax.fill_between(wl, lo_plot, hi_plot, color=color, alpha=0.12)
-
     if n_plotted == 0:
         raise RuntimeError("No valid spectra plotted. Check points, tiles, snap radius, or ROI location.")
 
-    for a, b in [(920, 960), (1110, 1145), (1340, 1450), (1800, 1950)]:
-        ax.axvspan(a, b, alpha=0.12)
-
-    ax.set_xlabel("Wavelength (nm)", fontsize=12, labelpad=12)
-    ax.set_ylabel("Reflectance", fontsize=12)
-    ax.set_title(
-        f"Overlayed ROI Spectra from CSV: {Path(args.points).name}\n"
-        f"Auto-matched H5 tile per point | ROI={args.roi} | Snap={args.snap}",
-        fontsize=13,
-    )
-    ax.grid(True, linestyle="--", alpha=0.3)
-    ax.minorticks_on()
-    ax.legend(loc="upper right")
-
-    y_top = float(global_max * 1.15) if np.isfinite(global_max) and global_max > 0 else 0.2
-    ax.set_ylim(0, y_top)
-
-    y_line = -0.19
-    y_text = -0.24
-    regions = [
-        ("VIS\n400-700", 400, 700),
-        ("NIR\n700-1300", 700, 1300),
-        ("SWIR-I\n1450-1800", 1450, 1800),
-        ("SWIR-II\n1950-2400", 1950, 2400),
-    ]
-
-    xmin, xmax = ax.get_xlim()
-    for label, x0, x1 in regions:
-        xa = max(x0, xmin)
-        xb = min(x1, xmax)
-        if xb <= xa:
-            continue
-
-        ax.plot([xa, xb], [y_line, y_line], transform=ax.get_xaxis_transform(), color="black", linewidth=1.0, clip_on=False)
-        ax.plot([xa, xa], [y_line - 0.015, y_line + 0.015], transform=ax.get_xaxis_transform(), color="black", linewidth=1.0, clip_on=False)
-        ax.plot([xb, xb], [y_line - 0.015, y_line + 0.015], transform=ax.get_xaxis_transform(), color="black", linewidth=1.0, clip_on=False)
-        ax.text((xa + xb) / 2, y_text, label, transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=10, fontweight="bold")
-
-    plt.tight_layout()
-    plt.subplots_adjust(bottom=0.31)
+    points_path = Path(args.points)
+    title = args.title if args.title is not None else _figure_title()
+    if args.subtitle:
+        title = f"{title}\n{args.subtitle}"
 
     outpath = Path(args.out) if args.out else FIGURES / f"overlay_{Path(args.points).stem}_roi{args.roi}_snap{args.snap}.png"
-    outpath.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(outpath, dpi=300)
+    plot_reflectance_spectra(
+        plot_series,
+        outpath=outpath,
+        title=title,
+        footer=f"{_source_note(points_path, interactive_spectra)} {_roi_size_text(args.roi)}; snap={args.snap}.",
+        show=args.show,
+    )
     print("\nSaved:", outpath)
 
     if args.interactive:
@@ -529,11 +522,6 @@ def main() -> None:
             args.p_hi,
         )
         print("Saved interactive:", html_outpath)
-
-    if args.show:
-        plt.show()
-    else:
-        plt.close(fig)
 
 
 if __name__ == "__main__":
