@@ -1,0 +1,21 @@
+smp_id,user_pedon_id,reference_group,horizon_designation,top_depth_cm,bottom_depth_cm,overlap_0_30_cm,taxon_name,nasis_taxonomy,nasis_drainage_class,estimated_organic_carbon_pct,total_nitrogen_pct,total_sulfur_pct,fe_dithionite_pct,fe_oxalate_pct,clay_pct,sand_pct,silt_pct
+242076,S2015ND093009,NONHYDRIC_REFERENCE,A,0.0,20.0,20.0,Zahl,"Fine-loamy, mixed, active, frigid Typic Calciustolls",well,2.6968,0.26840464,0.02477581,0.7413414,0.10935591,30.8702488,38.8,30.3
+242080,S2015ND093010,NONHYDRIC_REFERENCE,A,0.0,18.0,18.0,Wabeck,"Loamy-skeletal, mixed, frigid Entic Haplustolls",excessively,4.196,0.40772535,0.04438529,0.742162,0.11523499,21.5750755,46.7,31.7
+242092,S2015ND093019,NONHYDRIC_REFERENCE,A,0.0,14.0,14.0,Williams,"Fine-loamy, mixed, active, frigid Typic Haplustolls",well,4.2544,0.40317855,0.05182244,0.8155124,0.13144692,31.7795371,36.3,31.9
+242106,S2015ND093026,HYDRIC_REFERENCE,Oi,0.0,2.0,2.0,Parnell,"Fine, smectitic, frigid Vertic Argiaquolls",very poorly,33.7024,2.47308604,2.11305855,0.4675123,0.34940255,35.9160196,5.9,58.2
+242113,S2015ND093028,HYDRIC_REFERENCE,Oi,0.0,5.0,5.0,Parnell,"Fine, smectitic, frigid Vertic Argiaquolls",poorly,20.4948,1.36310431,0.68640882,0.5435763,0.31049193,37.8574778,20.5,41.6
+242130,S2015ND093031,HYDRIC_REFERENCE,A,0.0,29.0,29.0,Tonka,"Fine, smectitic, frigid Argiaquic Argialbolls",poorly,4.38,0.40881178,0.06241401,0.563982,0.33069653,29.6515451,22.7,47.6
+247266,S2016ND059001,NONHYDRIC_REFERENCE,A1,0.0,30.0,30.0,Parshall,"Coarse-loamy, mixed, superactive, frigid Pachic Haplustolls",well,1.31,0.1517454,0.01922108,1.0209127,0.07206757,8.1824277,74.6,17.2
+247270,S2016ND059003,NONHYDRIC_REFERENCE,A,0.0,18.0,18.0,Wyola,"Fine, smectitic, frigid Vertic Argiustolls",well,2.74,0.29216955,0.03965158,1.0069136,0.17590807,37.8405914,22.9,39.3
+247274,S2016ND059005,NONHYDRIC_REFERENCE,Oi,0.0,4.0,4.0,Temvik,"Fine-silty, mixed, superactive, frigid Typic Haplustolls",well,6.81,0.57922258,0.08481474,0.7995976,0.12009185,24.3789,17.1,58.5
+247305,S2016ND059017,NONHYDRIC_REFERENCE,A,0.0,30.0,30.0,Wilton,"Fine-silty, mixed, superactive, frigid Pachic Haplustolls",well,2.84,0.26854857,0.02788774,1.074304,0.12369414,25.0657037,18.5,56.4
+247310,S2016ND059020,NONHYDRIC_REFERENCE,A,0.0,14.0,14.0,Chama,"Fine-silty, mixed, superactive, frigid Typic Calciustolls",well,2.6752,0.27438963,0.03377103,1.4022013,0.2618772,47.6804834,5.7,46.6
+247323,S2016ND059023,NONHYDRIC_REFERENCE,Ap,0.0,13.0,13.0,Janesburg,"Fine, smectitic, frigid Typic Natrustolls",well,3.03,0.27881272,0.02788127,0.768325,0.11732313,28.9272908,26.5,44.6
+247330,S2016ND059024,NONHYDRIC_REFERENCE,A,0.0,32.0,30.0,Wilton,"Fine-silty, mixed, superactive, frigid Pachic Haplustolls",well,2.84,0.26863431,0.0464944,0.7511428,0.12411163,25.3542571,16.4,58.2
+247339,S2016ND059029,NONHYDRIC_REFERENCE,A,0.0,20.0,20.0,Amor,"Fine-loamy, mixed, superactive, frigid Typic Haplustolls",well,2.62,0.26002161,0.03016251,0.4103639,0.07947188,23.3923245,55.5,21.1
+269127,S2017ND093001,NONHYDRIC_REFERENCE,A,0.0,15.0,15.0,Zahl,"Fine-loamy, mixed, superactive, frigid Typic Calciustolls",well,4.3928,0.48150119,0.052248,0.7140044,0.14179515,24.4739758,45.7,29.8
+269130,S2017ND093004,NONHYDRIC_REFERENCE,A,0.0,11.0,11.0,Sioux,"Sandy or sandy-skeletal, mixed, superactive, frigid Entic Hapludolls",excessively,4.5344,0.53960649,0.08246816,1.1485728,0.13043719,13.1529925,68.7,18.1
+269142,S2017ND093011,NONHYDRIC_REFERENCE,A,0.0,25.0,25.0,Bowbells,"Fine-loamy, mixed, superactive, frigid Pachic Argiustolls",moderately well,5.01,0.46225739,0.02978992,0.6317655,0.29901962,25.1932256,32.6,42.2
+269150,S2017ND093016,NONHYDRIC_REFERENCE,A,0.0,18.0,18.0,Bowbells,"Fine-loamy, mixed, superactive, frigid Pachic Argiustolls",well,5.01,0.48190107,0.06767121,0.6950773,0.15165396,28.7454484,32.9,38.4
+269166,S2017ND093027,NONHYDRIC_REFERENCE,A,0.0,12.0,12.0,Bowbells,"Fine-loamy, superactive, frigid Pachic Argiustolls",well,4.89,0.50090994,0.03782381,0.7850264,0.18488148,24.724237,39.8,35.5
+269180,S2017ND093063,HYDRIC_REFERENCE,A1,0.0,27.0,27.0,Parnell,"Fine, smectitic, frigid Vertic Argiaquolls",very poorly,5.2,0.51256391,0.04818101,0.3051432,0.24122556,25.7993463,34.5,39.7
