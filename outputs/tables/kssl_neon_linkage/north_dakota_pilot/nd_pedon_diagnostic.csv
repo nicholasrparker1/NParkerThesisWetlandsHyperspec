@@ -1,0 +1,49 @@
+lims_pedon_id,user_pedon_id,LRR,MLRA,approved_indicators_present,number_applicable_priority_indicators,number_not_demonstrated,number_insufficient_information,areasymbol,muname,nasis_taxon_name,nasis_taxonomy,match_confidence,selected_compname,selected_drainagecl,selected_hydricrating,evidence_class
+24847,S2012ND093001,F,53B,,11,0,11,ND093,"Parnell silty clay loam, 0 to 1 percent slopes, Missouri Coteau",Manning-Like,,UNMATCHED,,,,LINKAGE_UNRESOLVED
+34938,S2015ND093009,F,53B,,11,6,5,ND093,"Zahl-Williams loams, 9 to 15 percent slopes",Zahl,"Fine-loamy, mixed, active, frigid Typic Calciustolls",EXACT,Zahl,Well drained,No,PARTIAL_NEGATIVE_SUPPORT
+34939,S2015ND093010,F,53B,,11,3,8,ND093,"Lehr-Wabek loams, 2 to 6 percent slopes",Wabek,"Loamy-skeletal, mixed, frigid Entic Haplustolls",EXACT,Wabek,Excessively drained,No,PARTIAL_NEGATIVE_SUPPORT
+34940,S2015ND093013,F,53B,,11,1,10,ND093,"Zahl-Max-Bowbells loams, 6 to 35 percent slopes",Typic Caciaquoll,"Fine, smectitic, frigid Typic Calciaquolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+34941,S2015ND093017,F,53B,,11,3,8,ND093,"Wabek-Lehr-Appam complex, 9 to 25 percent slopes",Schaller,"Sandy, mixed, frigid Entic Haplustolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+34942,S2015ND093019,F,53B,,11,9,2,ND093,"Zahl-Max-Parnell complex, 0 to 35 percent slopes",Max,"Fine-loamy, mixed, active, frigid Typic Haplustolls",EXACT,Max,Well drained,No,PARTIAL_NEGATIVE_SUPPORT
+34943,S2015ND093021,F,53B,,11,1,10,ND093,"Zahl-Max-Parnell complex, 0 to 35 percent slopes",Colvin,"Fine-silty, mixed, superactive, frigid Typic Calciaquolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+34944,S2015ND093022,F,53B,,11,1,10,ND093,"Williams-Zahl-Zahill complex, 6 to 9 percent slopes",Southam,"Fine, smectitic, calcareous, frigid Vertic Endoaquolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+34945,S2015ND093026,F,53B,,11,1,10,ND093,"Parnell silty clay loam, 0 to 1 percent slopes, Missouri Coteau",Parnell,"Fine, smectitic, frigid Vertic Argiaquolls",EXACT,Parnell,Very poorly drained,Yes,SSURGO_POSITIVE_MORPH_NOT_DEMONSTRATED
+34946,S2015ND093028,F,53B,,11,1,10,ND093,"Tonka-Parnell complex, 0 to 1 percent slopes, Missouri Coteau",Parnell,"Fine, smectitic, frigid Vertic Argiaquolls",EXACT,Parnell,Very poorly drained,Yes,SSURGO_POSITIVE_MORPH_NOT_DEMONSTRATED
+34947,S2015ND093029,F,53B,,11,1,10,ND093,"Lehr-Wabek loams, 2 to 6 percent slopes",McDonaldsville,"Loamy-skeletal, mixed, superactive, frigid Typic Calciaquolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+34948,S2015ND093030,F,53B,,11,1,10,ND093,"Parnell silty clay loam, 0 to 1 percent slopes, Missouri Coteau",SND,"Fine-loamy, carbonatic, frigid Cumulic Endoaquolls",EXACT,Southam,Very poorly drained,Yes,SSURGO_POSITIVE_MORPH_NOT_DEMONSTRATED
+34949,S2015ND093031,F,53B,,11,1,10,ND093,"Lehr-Wabek loams, 2 to 6 percent slopes",Tonka,"Fine, smectitic, frigid Argiaquic Argialbolls",EXACT,Tonka,Poorly drained,Yes,SSURGO_POSITIVE_MORPH_NOT_DEMONSTRATED
+34950,S2015ND093032,F,53B,,11,3,8,ND093,"Wabek-Lehr-Appam complex, 9 to 25 percent slopes",Roseglen,"Fine-loamy, mixed, superactive, frigid Pachic Haplustolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+34951,S2015ND093033,F,53B,,11,6,5,ND093,"Lehr-Wabek loams, 2 to 6 percent slopes",Tansem,"Coarse-loamy, mixed, active, frigid Typic Haplustolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+34952,S2015ND093034,F,53B,F2,11,2,8,ND093,"Tonka-Parnell complex, 0 to 1 percent slopes, Missouri Coteau",Zahl,"Coarse-loamy, mixed, superactive, frigid Typic Calciustolls",AMBIGUOUS,,,,MORPH_POSITIVE_SSURGO_UNRESOLVED
+35444,S2016ND059001,F,54,,11,3,8,ND059,"Parshall fine sandy loam, 0 to 2 percent slopes",Parshall,"Coarse-loamy, mixed, superactive, frigid Pachic Haplustolls",EXACT,Parshall,Well drained,No,PARTIAL_NEGATIVE_SUPPORT
+35445,S2016ND059003,F,54,,11,3,8,ND059,"Wyola silty clay loam, 6 to 9 percent slopes",Savage,"Fine, smectitic, frigid Vertic Argiustolls",EXACT,Wyola,Well drained,No,PARTIAL_NEGATIVE_SUPPORT
+35446,S2016ND059005,F,54,,11,8,3,ND059,"Temvik-Wilton silt loams, 0 to 3 percent slopes",Temvik,"Fine-silty, mixed, superactive, frigid Typic Haplustolls",EXACT,Temvik,Well drained,No,PARTIAL_NEGATIVE_SUPPORT
+35447,S2016ND059007,F,54,,11,6,5,ND059,"Cabba-Chama-Shambo loams, 9 to 50 percent slopes",Golva,"Fine-silty, mixed, superactive, frigid Typic Haplustolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+35448,S2016ND059008,F,54,,11,3,8,ND059,"Amor-Cabba loams, 9 to 15 percent slopes",Savage,"Fine, smectitic, frigid Vertic Argiustolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+35449,S2016ND059011,F,54,,11,6,5,ND059,"Regent-Wyola silty clay loams, 6 to 9 percent slopes",Morton,"Fine-silty, mixed, superactive, frigid Typic Argiustolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+35450,S2016ND059013,F,54,,11,3,8,ND059,"Telfer loamy fine sand, 6 to 15 percent slopes",Schaller,"Sandy, mixed, frigid Entic Haplustolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+35451,S2016ND059014,F,54,,11,6,5,ND059,"Cabba-Chama-Shambo loams, 9 to 50 percent slopes",Savage,"Fine, smectitic, frigid Vertic Argiustolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+35452,S2016ND059016,F,54,,11,6,5,ND059,"Cabba-Chama-Shambo loams, 9 to 50 percent slopes",Sen,"Fine-silty, mixed, superactive, frigid Typic Haplustolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+35453,S2016ND059017,F,54,,11,6,5,ND059,"Temvik-Wilton silt loams, 0 to 3 percent slopes",Wilton,"Fine-silty, mixed, superactive, frigid Pachic Haplustolls",EXACT,Wilton,Well drained,No,PARTIAL_NEGATIVE_SUPPORT
+35454,S2016ND059020,F,54,,11,6,5,ND059,"Wabek-Manning complex, 6 to 15 percent slopes",Chama,"Fine-silty, mixed, superactive, frigid Typic Calciustolls",EXACT,Chama,Well drained,No,PARTIAL_NEGATIVE_SUPPORT
+35455,S2016ND059021,F,54,,11,3,8,ND059,"Cabba-Chama-Sen silt loams, 9 to 15 percent slopes",Farnuf,"Fine-loamy, mixed, superactive, frigid Typic Argiustolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+35456,S2016ND059022,F,54,,11,1,10,ND059,"Grail silty clay loam, 0 to 2 percent slopes",Cabba,"Loamy, mixed, superactive, calcareous, frigid Typic Ustorthents",UNMATCHED,,,,LINKAGE_UNRESOLVED
+35457,S2016ND059023,F,54,,11,6,5,ND059,"Regent-Janesburg complex, 3 to 6 percent slopes",Janesburg,"Fine, smectitic, frigid Typic Natrustolls",EXACT,Janesburg,Well drained,No,PARTIAL_NEGATIVE_SUPPORT
+35458,S2016ND059024,F,54,,11,3,8,ND059,"Temvik-Wilton silt loams, 0 to 3 percent slopes",Wilton,"Fine-silty, mixed, superactive, frigid Pachic Haplustolls",EXACT,Wilton,Well drained,No,PARTIAL_NEGATIVE_SUPPORT
+35459,S2016ND059027,F,54,,11,3,8,ND059,"Amor-Cabba loams, 6 to 9 percent slopes",Grail,"Fine, smectitic, frigid Pachic Vertic Argiustolls",MEDIUM,Regent,Well drained,No,LINKAGE_UNRESOLVED
+35461,S2016ND059029,F,54,,11,3,8,ND059,"Cabba-Chama-Shambo loams, 9 to 50 percent slopes",Amor,"Fine-loamy, mixed, superactive, frigid Typic Haplustolls",EXACT,Amor,Well drained,No,PARTIAL_NEGATIVE_SUPPORT
+35460,S2016ND059030,F,54,,11,6,5,ND059,"Amor-Cabba loams, 9 to 15 percent slopes",Bryant,"Fine-silty, mixed, superactive, frigid Typic Haplustolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+37473,S2017ND093001,F,53B,,11,3,8,ND093,"Zahl-Max-Bowbells loams, 6 to 35 percent slopes",Zahl,"Fine-loamy, mixed, superactive, frigid Typic Calciustolls",EXACT,Zahl,Well drained,No,PARTIAL_NEGATIVE_SUPPORT
+37474,S2017ND093004,F,55B,,11,1,10,ND093,"Sioux-Arvilla complex, 2 to 6 percent slopes",Sioux,"Sandy or sandy-skeletal, mixed, superactive, frigid Entic Hapludolls",EXACT,Sioux,Excessively drained,No,PARTIAL_NEGATIVE_SUPPORT
+37475,S2017ND093007,F,53B,,11,6,5,ND093,"Zahl-Max-Bowbells loams, 6 to 35 percent slopes",Williams,"Fine-loamy, mixed, superactive, frigid Typic Argiustolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+37476,S2017ND093010,F,53B,,11,6,5,ND093,"Zahl-Max-Parnell complex, 0 to 35 percent slopes",Grail,"Fine, smectitic, frigid Vertic Argiustolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+37477,S2017ND093011,F,53B,,11,6,5,ND093,"Williams-Zahl-Zahill complex, 6 to 9 percent slopes",Bowbells,"Fine-loamy, mixed, superactive, frigid Pachic Argiustolls",EXACT,Bowbells,Moderately well drained,No,PARTIAL_NEGATIVE_SUPPORT
+37478,S2017ND093014,F,53B,,11,3,8,ND093,"Zahl-Max-Bowbells loams, 6 to 35 percent slopes",Arnegard,"Fine-loamy, mixed, superactive, frigid Pachic Haplustolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+37479,S2017ND093016,F,53B,,11,6,5,ND093,"Zahl-Max-Bowbells loams, 6 to 35 percent slopes",Bowbells,"Fine-loamy, mixed, superactive, frigid Pachic Argiustolls",EXACT,Bowbells,Moderately well drained,No,PARTIAL_NEGATIVE_SUPPORT
+37480,S2017ND093020,F,55B,,11,1,10,ND093,"Barnes-Buse-Langhei loams, 6 to 9 percent slopes",Aastad,"Fine-loamy, mixed, superactive, frigid Pachic Argiudolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+37481,S2017ND093022,F,53B,,11,1,10,ND093,"Parnell silty clay loam, 0 to 1 percent slopes, Missouri Coteau",Badger,"Fine, smectitic, frigid Vertic Argiaquolls",MEDIUM,Parnell,Very poorly drained,Yes,LINKAGE_UNRESOLVED
+37482,S2017ND093023,F,53B,,11,6,5,ND093,"Zahl-Max-Bowbells loams, 6 to 35 percent slopes",Williams,"Fine-loamy, mixed, superactive, frigid Typic Argiustolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+37483,S2017ND093027,F,53B,,11,3,8,ND093,"Zahl-Max-Bowbells loams, 6 to 35 percent slopes",Bowbells,"Fine-loamy, superactive, frigid Pachic Argiustolls",EXACT,Bowbells,Moderately well drained,No,PARTIAL_NEGATIVE_SUPPORT
+37484,S2017ND093029,F,53B,,11,3,8,ND093,"Zahl-Max-Bowbells loams, 6 to 35 percent slopes",Grail,"Fine, smectitic, nonacid, frigid Pachic Vertic Argiustolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+37485,S2017ND093030,F,55B,,11,1,10,ND093,"Sioux-Arvilla complex, 0 to 2 percent slopes",Renshaw,"Fine-loamy over sandy or sandy-skeletal, mixed, superactive, frigid Calcic Hapludolls",AMBIGUOUS,,,,LINKAGE_UNRESOLVED
+37486,S2017ND093063,F,53B,,11,1,10,ND093,"Parnell silty clay loam, 0 to 1 percent slopes, Missouri Coteau",Parnell,"Fine, smectitic, frigid Vertic Argiaquolls",EXACT,Parnell,Very poorly drained,Yes,SSURGO_POSITIVE_MORPH_NOT_DEMONSTRATED
