@@ -1,0 +1,10 @@
+user_pedon_id,indicator_code,areasymbol,mukey,musym,muname,selected_cokey,selected_compname,match_confidence,selected_hydricrating,agreement_disagreement
+S2015ND093034,F2,ND093,3312344,C26A,"Tonka-Parnell complex, 0 to 1 percent slopes, Missouri Coteau",,,AMBIGUOUS,,UNRESOLVED
+S2016FL107005,A7,FL107,323416,5,"Placid fine sand, frequently ponded, 0 to 1 percent slopes",26572353,Placid,EXACT,Yes,AGREEMENT
+S2016FL107023,A7,FL107,323391,27,"Samsula muck, frequently ponded, 0 to 1 percent slopes",,,AMBIGUOUS,,UNRESOLVED
+S2018PR055006,A7,PR787,1407028,PsF,"Pitahaya-Limestone outcrop-Seboruco complex, 40 to 60 percent slopes",27626924,La Covana,EXACT,No,DISAGREEMENT
+S2018PR055012,A7,PR787,1407028,PsF,"Pitahaya-Limestone outcrop-Seboruco complex, 40 to 60 percent slopes",27626924,La Covana,EXACT,No,DISAGREEMENT
+S2018PR059017,A7,PR688,326850,TuF,"Tuque stony clay loam, 12 to 60 percent slopes",,,UNMATCHED,,UNRESOLVED
+S2018PR153003,A7,PR787,1407028,PsF,"Pitahaya-Limestone outcrop-Seboruco complex, 40 to 60 percent slopes",27626924,La Covana,EXACT,No,DISAGREEMENT
+S2018PR153014,A7,PR787,1407028,PsF,"Pitahaya-Limestone outcrop-Seboruco complex, 40 to 60 percent slopes",27626922,Pitahaya,EXACT,No,DISAGREEMENT
+S2018PR153015,A7,PR787,1716023,LcE,"La Covana-Limestone outcrop-Seboruco complex, 12 to 40 percent slopes",,,AMBIGUOUS,,UNRESOLVED

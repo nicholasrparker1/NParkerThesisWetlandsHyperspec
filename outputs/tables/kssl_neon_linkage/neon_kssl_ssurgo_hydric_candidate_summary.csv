@@ -1,0 +1,6 @@
+match_confidence,yes,no,unranked,missing
+AMBIGUOUS,0,0,0,219
+EXACT,23,292,0,2
+HIGH,0,4,0,0
+MEDIUM,12,28,0,1
+UNMATCHED,0,0,0,196
