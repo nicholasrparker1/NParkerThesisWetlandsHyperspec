@@ -1,0 +1,49 @@
+lims_pedon_id,user_pedon_id,MLRA,nasis_taxon_name,nasis_taxonomy,match_confidence,selected_compname,selected_drainagecl,selected_hydricrating,approved_indicators_present,n_horizons,n_moist_color_horizons,n_redox_horizons,n_low_chroma_horizons_0_30cm,n_low_chroma_horizons_0_50cm,max_redox_pct,mentions_depletion,mentions_gley,mentions_reduced,mentions_muck,mentions_peat,mentions_h2s,aquic_taxonomy
+24847,S2012ND093001,53B,Manning-Like,,UNMATCHED,,,,,7,0,0,2,2,,False,False,False,False,False,False,False
+34938,S2015ND093009,53B,Zahl,"Fine-loamy, mixed, active, frigid Typic Calciustolls",EXACT,Zahl,Well drained,No,,4,4,1,1,1,5.0,False,False,False,False,False,False,False
+34939,S2015ND093010,53B,Wabek,"Loamy-skeletal, mixed, frigid Entic Haplustolls",EXACT,Wabek,Excessively drained,No,,3,3,0,2,2,,False,False,False,False,False,False,False
+34940,S2015ND093013,53B,Typic Caciaquoll,"Fine, smectitic, frigid Typic Calciaquolls",AMBIGUOUS,,,,,4,0,2,1,2,3.0,True,False,True,False,False,False,True
+34941,S2015ND093017,53B,Schaller,"Sandy, mixed, frigid Entic Haplustolls",AMBIGUOUS,,,,,5,5,0,1,1,,False,False,False,False,False,False,False
+34942,S2015ND093019,53B,Max,"Fine-loamy, mixed, active, frigid Typic Haplustolls",EXACT,Max,Well drained,No,,5,5,1,1,1,4.0,True,False,False,False,False,False,False
+34943,S2015ND093021,53B,Colvin,"Fine-silty, mixed, superactive, frigid Typic Calciaquolls",AMBIGUOUS,,,,,5,0,3,2,3,7.0,True,False,True,True,True,False,True
+34944,S2015ND093022,53B,Southam,"Fine, smectitic, calcareous, frigid Vertic Endoaquolls",AMBIGUOUS,,,,,4,0,2,1,1,5.0,True,False,False,True,True,True,True
+34945,S2015ND093026,53B,Parnell,"Fine, smectitic, frigid Vertic Argiaquolls",EXACT,Parnell,Very poorly drained,Yes,,7,0,4,3,4,6.0,True,False,True,False,False,False,True
+34946,S2015ND093028,53B,Parnell,"Fine, smectitic, frigid Vertic Argiaquolls",EXACT,Parnell,Very poorly drained,Yes,,6,0,4,3,3,10.0,True,False,False,False,False,False,True
+34947,S2015ND093029,53B,McDonaldsville,"Loamy-skeletal, mixed, superactive, frigid Typic Calciaquolls",AMBIGUOUS,,,,,5,0,2,2,3,20.0,True,False,True,True,False,False,True
+34948,S2015ND093030,53B,SND,"Fine-loamy, carbonatic, frigid Cumulic Endoaquolls",EXACT,Southam,Very poorly drained,Yes,,6,0,2,3,4,2.0,False,False,True,True,True,False,True
+34949,S2015ND093031,53B,Tonka,"Fine, smectitic, frigid Argiaquic Argialbolls",EXACT,Tonka,Poorly drained,Yes,,6,0,3,2,3,7.0,True,False,False,False,False,False,True
+34950,S2015ND093032,53B,Roseglen,"Fine-loamy, mixed, superactive, frigid Pachic Haplustolls",AMBIGUOUS,,,,,4,4,0,1,2,,False,False,False,False,False,False,False
+34951,S2015ND093033,53B,Tansem,"Coarse-loamy, mixed, active, frigid Typic Haplustolls",AMBIGUOUS,,,,,3,3,1,2,2,3.0,False,False,False,False,False,False,False
+34952,S2015ND093034,53B,Zahl,"Coarse-loamy, mixed, superactive, frigid Typic Calciustolls",AMBIGUOUS,,,,F2,4,4,0,1,1,,False,False,False,False,False,False,False
+35444,S2016ND059001,54,Parshall,"Coarse-loamy, mixed, superactive, frigid Pachic Haplustolls",EXACT,Parshall,Well drained,No,,6,6,0,1,2,,False,False,False,False,False,False,False
+35445,S2016ND059003,54,Savage,"Fine, smectitic, frigid Vertic Argiustolls",EXACT,Wyola,Well drained,No,,5,5,0,2,2,,False,False,False,False,False,False,False
+35446,S2016ND059005,54,Temvik,"Fine-silty, mixed, superactive, frigid Typic Haplustolls",EXACT,Temvik,Well drained,No,,9,8,3,1,1,5.0,False,False,False,False,False,False,False
+35447,S2016ND059007,54,Golva,"Fine-silty, mixed, superactive, frigid Typic Haplustolls",AMBIGUOUS,,,,,7,6,5,2,3,25.0,False,False,False,False,False,False,False
+35448,S2016ND059008,54,Savage,"Fine, smectitic, frigid Vertic Argiustolls",AMBIGUOUS,,,,,4,4,0,2,2,,False,False,False,False,False,False,False
+35449,S2016ND059011,54,Morton,"Fine-silty, mixed, superactive, frigid Typic Argiustolls",AMBIGUOUS,,,,,4,3,1,1,1,3.0,False,False,False,False,False,False,False
+35450,S2016ND059013,54,Schaller,"Sandy, mixed, frigid Entic Haplustolls",AMBIGUOUS,,,,,6,6,0,2,2,,False,False,False,False,False,False,False
+35451,S2016ND059014,54,Savage,"Fine, smectitic, frigid Vertic Argiustolls",AMBIGUOUS,,,,,7,5,2,2,2,8.0,False,False,False,False,False,False,False
+35452,S2016ND059016,54,Sen,"Fine-silty, mixed, superactive, frigid Typic Haplustolls",AMBIGUOUS,,,,,4,4,2,2,2,8.0,False,False,False,False,False,False,False
+35453,S2016ND059017,54,Wilton,"Fine-silty, mixed, superactive, frigid Pachic Haplustolls",EXACT,Wilton,Well drained,No,,6,6,3,1,1,15.0,False,False,False,False,False,False,False
+35454,S2016ND059020,54,Chama,"Fine-silty, mixed, superactive, frigid Typic Calciustolls",EXACT,Chama,Well drained,No,,4,3,1,0,0,10.0,False,False,False,False,False,False,False
+35455,S2016ND059021,54,Farnuf,"Fine-loamy, mixed, superactive, frigid Typic Argiustolls",AMBIGUOUS,,,,,7,7,0,3,3,,False,False,False,False,False,False,False
+35456,S2016ND059022,54,Cabba,"Loamy, mixed, superactive, calcareous, frigid Typic Ustorthents",UNMATCHED,,,,,4,0,2,1,1,3.0,False,False,False,False,False,False,False
+35457,S2016ND059023,54,Janesburg,"Fine, smectitic, frigid Typic Natrustolls",EXACT,Janesburg,Well drained,No,,7,6,2,3,3,5.0,False,False,False,False,False,False,False
+35458,S2016ND059024,54,Wilton,"Fine-silty, mixed, superactive, frigid Pachic Haplustolls",EXACT,Wilton,Well drained,No,,6,6,1,1,2,10.0,False,False,False,False,False,False,False
+35459,S2016ND059027,54,Grail,"Fine, smectitic, frigid Pachic Vertic Argiustolls",MEDIUM,Regent,Well drained,No,,7,7,0,2,2,,False,False,False,False,False,False,False
+35461,S2016ND059029,54,Amor,"Fine-loamy, mixed, superactive, frigid Typic Haplustolls",EXACT,Amor,Well drained,No,,4,3,1,1,1,,False,False,False,False,False,False,False
+35460,S2016ND059030,54,Bryant,"Fine-silty, mixed, superactive, frigid Typic Haplustolls",AMBIGUOUS,,,,,8,8,1,2,3,4.0,False,False,False,False,False,False,False
+37473,S2017ND093001,53B,Zahl,"Fine-loamy, mixed, superactive, frigid Typic Calciustolls",EXACT,Zahl,Well drained,No,,3,3,0,2,3,,False,False,False,False,False,False,False
+37474,S2017ND093004,55B,Sioux,"Sandy or sandy-skeletal, mixed, superactive, frigid Entic Hapludolls",EXACT,Sioux,Excessively drained,No,,3,0,0,1,1,,False,False,False,False,False,False,False
+37475,S2017ND093007,53B,Williams,"Fine-loamy, mixed, superactive, frigid Typic Argiustolls",AMBIGUOUS,,,,,4,4,1,1,2,3.0,False,False,False,False,False,False,False
+37476,S2017ND093010,53B,Grail,"Fine, smectitic, frigid Vertic Argiustolls",AMBIGUOUS,,,,,5,5,1,2,3,15.0,False,False,False,False,False,False,False
+37477,S2017ND093011,53B,Bowbells,"Fine-loamy, mixed, superactive, frigid Pachic Argiustolls",EXACT,Bowbells,Moderately well drained,No,,4,4,2,2,2,15.0,True,False,False,False,False,False,False
+37478,S2017ND093014,53B,Arnegard,"Fine-loamy, mixed, superactive, frigid Pachic Haplustolls",AMBIGUOUS,,,,,4,4,1,1,2,2.0,False,False,False,False,False,False,False
+37479,S2017ND093016,53B,Bowbells,"Fine-loamy, mixed, superactive, frigid Pachic Argiustolls",EXACT,Bowbells,Moderately well drained,No,,4,4,2,2,2,4.0,False,False,True,False,False,False,False
+37480,S2017ND093020,55B,Aastad,"Fine-loamy, mixed, superactive, frigid Pachic Argiudolls",AMBIGUOUS,,,,,4,0,0,0,0,,False,False,False,False,False,False,False
+37481,S2017ND093022,53B,Badger,"Fine, smectitic, frigid Vertic Argiaquolls",MEDIUM,Parnell,Very poorly drained,Yes,,4,0,3,2,2,10.0,False,False,False,False,False,False,True
+37482,S2017ND093023,53B,Williams,"Fine-loamy, mixed, superactive, frigid Typic Argiustolls",AMBIGUOUS,,,,,4,3,2,1,1,5.0,False,False,False,False,False,False,False
+37483,S2017ND093027,53B,Bowbells,"Fine-loamy, superactive, frigid Pachic Argiustolls",EXACT,Bowbells,Moderately well drained,No,,5,5,0,2,2,,False,False,False,False,False,False,False
+37484,S2017ND093029,53B,Grail,"Fine, smectitic, nonacid, frigid Pachic Vertic Argiustolls",AMBIGUOUS,,,,,5,5,0,2,3,,False,False,False,False,False,False,False
+37485,S2017ND093030,55B,Renshaw,"Fine-loamy over sandy or sandy-skeletal, mixed, superactive, frigid Calcic Hapludolls",AMBIGUOUS,,,,,4,0,0,1,1,,False,False,False,False,False,False,False
+37486,S2017ND093063,53B,Parnell,"Fine, smectitic, frigid Vertic Argiaquolls",EXACT,Parnell,Very poorly drained,Yes,,5,0,4,2,3,85.0,False,False,True,False,False,False,True
