@@ -11,6 +11,7 @@ negative evidence, and cases limited by missing morphology or linkage.
 """
 
 from pathlib import Path
+import re
 
 import numpy as np
 import pandas as pd
@@ -32,6 +33,29 @@ def norm_text(series):
     return series.fillna("").astype(str).str.strip()
 
 
+def resolve_site_code(current: object, project: object) -> tuple[str, str]:
+    """Recover only site codes explicitly supported by project provenance."""
+    existing = str(current).strip() if pd.notna(current) else ""
+    if existing:
+        return existing, "existing likely_neon_site_code"
+    text = str(project).upper() if pd.notna(project) else ""
+    parenthetical = re.search(r"\(([A-Z0-9]{4})\)", text)
+    if parenthetical:
+        return parenthetical.group(1), "four-character code in project name"
+    aliases = {
+        "WOODWORTH": "WOOD", "STUTSMAN": "WOOD",
+        "LENOIR": "LENO", "TALLADEGA": "TALL", "TALLADAGA": "TALL",
+        "GUANICA": "GUAN", "TREE HAVEN": "TREE", "STEIGERWALD": "STEI",
+        "DELTA JUNCTION": "DEJU", "ONAQUI": "ONAQ", "KONZA": "KONZ",
+        "NIWOT RIDGE": "NIWO", "JORNADA": "JORN", "CPER": "CPER",
+        "BLANDY": "BLAN", "SERC": "SERC", "WIND RIVER": "WREF",
+    }
+    matches = {code for name, code in aliases.items() if name in text}
+    if len(matches) == 1:
+        return matches.pop(), "unique named-site alias in project provenance"
+    return "", "unresolved from existing project provenance"
+
+
 def main():
 
     indicators = pd.read_csv(INDICATORS, low_memory=False)
@@ -45,6 +69,7 @@ def main():
         "lims_pedon_id",
         "user_pedon_id",
         "likely_neon_site_code",
+        "submit_proj_name",
         "areasymbol",
         "mukey",
         "musym",
@@ -71,6 +96,15 @@ def main():
         how="left",
         validate="one_to_one",
     )
+
+    resolved = bridge.apply(
+        lambda row: resolve_site_code(
+            row.get("likely_neon_site_code", ""), row.get("submit_proj_name", "")
+        ),
+        axis=1,
+    )
+    bridge["likely_neon_site_code"] = [value[0] for value in resolved]
+    bridge["site_code_resolution"] = [value[1] for value in resolved]
 
     bridge["match_confidence"] = norm_text(bridge["match_confidence"]).str.upper()
     bridge["ssurgo_hydric_rating"] = (
@@ -107,7 +141,7 @@ def main():
 
     # Whether NASIS contained enough information to explicitly evaluate at
     # least one applicable priority indicator as NOT demonstrated.
-    bridge["has_explicit_negative_morphology_evidence"] = (
+    bridge["at_least_one_rule_not_demonstrated"] = (
         bridge["number_not_demonstrated"] > 0
     )
 
@@ -120,69 +154,42 @@ def main():
 
     conditions = [
 
-        # Strongest cross-source positive evidence.
+        # Cross-source positive evidence.
         bridge["field_indicator_present"] & bridge["ssurgo_hydric_yes"],
 
         # Important scientific disagreements; preserve rather than relabel.
         bridge["field_indicator_present"] & bridge["ssurgo_hydric_no"],
 
-        # NRCS morphology supports hydric conditions, but SSURGO cannot
-        # independently resolve the pedon.
+        # NRCS morphology supports hydric conditions, but SSURGO is unresolved.
         bridge["field_indicator_present"]
         & ~bridge["ssurgo_hydric_yes"]
         & ~bridge["ssurgo_hydric_no"],
 
-        # Strongest available negative reference cohort.
-        ~bridge["field_indicator_present"]
-        & bridge["ssurgo_hydric_no"]
-        & bridge["complete_priority_indicator_evaluation"],
-
-        # SSURGO says nonhydric and NASIS explicitly fails >=1 indicator,
-        # but other indicators remain unevaluable.
-        ~bridge["field_indicator_present"]
-        & bridge["ssurgo_hydric_no"]
-        & bridge["has_explicit_negative_morphology_evidence"],
-
-        # SSURGO says nonhydric but NASIS morphology is too incomplete to
-        # provide meaningful corroboration.
-        ~bridge["field_indicator_present"]
-        & bridge["ssurgo_hydric_no"],
-
-        # SSURGO positive without a demonstrated field indicator.
+        # SSURGO component-scale hydric support without demonstrated morphology.
         ~bridge["field_indicator_present"]
         & bridge["ssurgo_hydric_yes"],
 
-        # Remaining medium/ambiguous/unmatched cases.
-        ~bridge["high_confidence_ssurgo_match"],
+        # SSURGO component-scale nonhydric support without a positive indicator.
+        ~bridge["field_indicator_present"]
+        & bridge["ssurgo_hydric_no"],
     ]
 
     labels = [
-        "CONCORDANT_POSITIVE",
-        "MORPH_POSITIVE_SSURGO_NEGATIVE_CONFLICT",
-        "MORPH_POSITIVE_SSURGO_UNRESOLVED",
-        "CONCORDANT_STRONG_NEGATIVE",
-        "PARTIAL_NEGATIVE_SUPPORT",
-        "SSURGO_NEGATIVE_MORPH_INSUFFICIENT",
-        "SSURGO_POSITIVE_MORPH_NOT_DEMONSTRATED",
-        "LINKAGE_UNRESOLVED",
+        "STRONG_HYDRIC_SUPPORT",
+        "CONFLICTING_EVIDENCE",
+        "MORPHOLOGY_HYDRIC_SUPPORT",
+        "SSURGO_HYDRIC_SUPPORT",
+        "SSURGO_NONHYDRIC_SUPPORT",
     ]
 
     bridge["evidence_class"] = np.select(
         conditions,
         labels,
-        default="OTHER",
-    )
-
-    # A modeling-use flag. This does NOT mean regulatory truth.
-    bridge["core_reference_cohort"] = bridge["evidence_class"].isin(
-        [
-            "CONCORDANT_POSITIVE",
-            "CONCORDANT_STRONG_NEGATIVE",
-        ]
+        default="INSUFFICIENT_OR_UNRESOLVED",
     )
 
     bridge["conflict_flag"] = bridge["evidence_class"].eq(
-        "MORPH_POSITIVE_SSURGO_NEGATIVE_CONFLICT"
+        "CONFLICTING_EVIDENCE"
     )
 
     bridge.to_csv(OUT, index=False)
@@ -196,8 +203,8 @@ def main():
             high_conf_ssurgo=("high_confidence_ssurgo_match", "sum"),
             ssurgo_hydric_yes=("ssurgo_hydric_yes", "sum"),
             ssurgo_hydric_no=("ssurgo_hydric_no", "sum"),
-            explicit_negative_morphology=(
-                "has_explicit_negative_morphology_evidence",
+            at_least_one_rule_not_demonstrated=(
+                "at_least_one_rule_not_demonstrated",
                 "sum",
             ),
             complete_indicator_evaluation=(
@@ -219,7 +226,7 @@ def main():
             bridge["complete_priority_indicator_evaluation"],
             "NO_INDICATOR_COMPLETE_EVAL",
             np.where(
-                bridge["has_explicit_negative_morphology_evidence"],
+            bridge["at_least_one_rule_not_demonstrated"],
                 "NO_INDICATOR_PARTIAL_EVAL",
                 "NO_INDICATOR_INSUFFICIENT",
             ),
@@ -246,7 +253,6 @@ def main():
         margins=True,
     )
 
-    core = bridge[bridge["core_reference_cohort"]]
     conflicts = bridge[bridge["conflict_flag"]]
 
     report = f"""# KSSL–NASIS–NRCS–SSURGO Hydric Evidence Bridge
@@ -275,16 +281,10 @@ of a detected field indicator as proof of nonhydric status.
 
 {cross.to_string()}
 
-## Core reference cohort
+## Site-code provenance
 
-The preliminary core cohort requires cross-source corroboration rather than
-using either source alone.
-
-- Concordant positive pedons:
-  {(core.evidence_class == "CONCORDANT_POSITIVE").sum()}
-- Concordant strong negative pedons:
-  {(core.evidence_class == "CONCORDANT_STRONG_NEGATIVE").sum()}
-- Total core reference pedons: {len(core)}
+- Resolved site codes: {(bridge.likely_neon_site_code != '').sum()}
+- Unresolved site codes: {(bridge.likely_neon_site_code == '').sum()}
 
 ## Conflicts
 
@@ -314,13 +314,6 @@ circular use of variables involved in constructing the reference evidence.
 
     print("\nMorphology x SSURGO cross-tab:")
     print(cross)
-
-    print("\nCore reference cohort:")
-    print(
-        core["evidence_class"]
-        .value_counts()
-        .to_string()
-    )
 
     print("\nConflicts:")
     print(len(conflicts))

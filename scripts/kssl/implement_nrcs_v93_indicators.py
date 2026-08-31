@@ -11,10 +11,8 @@ import math
 import re
 from pathlib import Path
 
-import geopandas as gpd
 import numpy as np
 import pandas as pd
-from pypdf import PdfReader
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -25,6 +23,9 @@ MANUAL = REF / "Field-Indicators-Version-9.3-2026.pdf"
 MLRA_SHP = REF / "MLRA_52_2022" / "MLRA_52.shp"
 MASTER = IN_DIR / "neon_kssl_master_pedon_horizon_table.csv"
 PEDONS = IN_DIR / "neon_kssl_nasis_full_pedon_summary.csv"
+GEO_ASSIGNMENTS = OUT_DIR / "neon_kssl_pedon_lrr_mlra.csv"
+RULEBOOK = OUT_DIR / "nrcs_v93_indicator_rulebook.csv"
+DATA_CROSSWALK = OUT_DIR / "nrcs_v93_indicator_data_crosswalk.csv"
 
 SOURCE_MANUAL = (
     "USDA NRCS/NTCHS, Field Indicators of Hydric Soils in the United States, "
@@ -116,6 +117,7 @@ def clean_text(s: str) -> str:
 
 
 def raw_rules() -> dict[str, str]:
+    from pypdf import PdfReader
     pages = [p.extract_text() or "" for p in PdfReader(str(MANUAL)).pages]
     text = "\n".join(pages)
     starts = []
@@ -175,6 +177,7 @@ def rulebook() -> pd.DataFrame:
 
 
 def spatial_assign(ped: pd.DataFrame) -> pd.DataFrame:
+    import geopandas as gpd
     p = ped.copy()
     p["latitude_out"] = pd.to_numeric(p["latitude_std_decimal_degrees"], errors="coerce").fillna(pd.to_numeric(p["latitude"], errors="coerce"))
     p["longitude_out"] = pd.to_numeric(p["longitude_std_decimal_degrees"], errors="coerce").fillna(pd.to_numeric(p["longitude"], errors="coerce"))
@@ -260,18 +263,58 @@ def applicable(code: str, lrr: object, mlra: object) -> bool | None:
     if ok and allowed: ok = any(m.startswith(x) for x in allowed)
     return ok
 
+def qualifies_a1(d: pd.DataFrame) -> tuple[bool | None, str]:
+    """Evaluate A1 from NASIS taxonomy, preferring structured fields.
+
+    Histosols qualify except the Folists suborder. Histels qualify except the
+    Folistels great group. A narrow literal-name fallback is used only when
+    the structured NASIS classification is unavailable.
+    """
+    def values(column: str) -> set[str]:
+        if column not in d:
+            return set()
+        return {
+            str(value).strip().lower()
+            for value in d[column].dropna().unique()
+            if str(value).strip()
+        }
+
+    orders = values("nasis_taxonomic_order")
+    suborders = values("nasis_taxonomic_suborder")
+    great_groups = values("nasis_taxonomic_great_group")
+    if orders or suborders or great_groups:
+        if "histosols" in orders and "folists" not in suborders:
+            return True, "Structured archived pedon order is Histosols and suborder is not Folists."
+        if "histels" in suborders and "folistels" not in great_groups:
+            return True, "Structured archived pedon suborder is Histels and great group is not Folistels."
+        return False, "Structured archived pedon taxonomy is not a qualifying Histosol or Histel."
+
+    taxonomy = " ".join(d.nasis_taxonomy.dropna().astype(str).unique()).lower()
+    if not taxonomy:
+        return None, "Structured archived pedon and rendered NASIS taxonomy are missing."
+    qualifies = bool(re.search(r"\bhistosols?\b|\bhistels?\b", taxonomy)) and not bool(
+        re.search(r"\bfolists?\b|\bfolistels?\b", taxonomy)
+    )
+    return qualifies, "Used literal Histosol/Histel NASIS-text fallback because structured archived pedon taxonomy was unavailable."
+
+
 def evaluate_priority(code: str, d: pd.DataFrame) -> tuple[str, pd.DataFrame, list[str], list[str], str]:
     missing, failed = [], []
+    success_detail = "Requirements satisfied."
     if d.empty:
         return "INSUFFICIENT_INFORMATION", d, failed, ["NASIS horizon description"], "No parsed NASIS horizons."
     chosen = d.iloc[0:0]
     status = "INDICATOR_NOT_DEMONSTRATED"
 
     if code == "A1":
-        tax = " ".join(d.nasis_taxonomy.dropna().astype(str).unique()).lower()
-        if not tax: missing.append("taxonomy")
-        elif re.search(r"\bhistosols?\b|\bhistels?\b", tax) and not re.search(r"folist|folistel", tax): status = "INDICATOR_PRESENT"; chosen = d
-        else: failed.append("taxonomy is not qualifying Histosol/Histel")
+        qualifies, reason = qualifies_a1(d)
+        if qualifies is None:
+            missing.append("structured or rendered NASIS taxonomy")
+        elif qualifies:
+            status = "INDICATOR_PRESENT"; chosen = d; success_detail = reason
+        else:
+            failed.append("taxonomy is not qualifying Histosol/Histel")
+        failed.append(reason)
     elif code in {"A3", "A7", "A8", "A9", "A10"}:
         minth = {"A3":20, "A7":5, "A8":0, "A9":1, "A10":2}[code]
         for _, r in d.iterrows():
@@ -357,7 +400,7 @@ def evaluate_priority(code: str, d: pd.DataFrame) -> tuple[str, pd.DataFrame, li
             if not d.fillna("").astype(str).apply(lambda x:x.str.contains("deplet",case=False).any(),axis=1).any(): missing.append("explicit wetness-derived depleted matrix")
             if not failed: failed.append("no continuous depleted layer satisfies depth/thickness requirements")
     if missing and status != "INDICATOR_PRESENT": status="INSUFFICIENT_INFORMATION"
-    explanation = ("Requirements satisfied." if status=="INDICATOR_PRESENT" else "; ".join(failed+(["Missing: "+", ".join(sorted(set(missing)))] if missing else [])))
+    explanation = (success_detail if status=="INDICATOR_PRESENT" else "; ".join(failed+(["Missing: "+", ".join(sorted(set(missing)))] if missing else [])))
     return status, chosen, failed, sorted(set(missing)), explanation
 
 
@@ -386,11 +429,33 @@ def crosswalk(rb: pd.DataFrame) -> pd.DataFrame:
 
 
 def main() -> None:
-    rb=rulebook(); rb.to_csv(OUT_DIR/"nrcs_v93_indicator_rulebook.csv",index=False)
+    # The frozen rulebook and MLRA assignment are unchanged by the A1
+    # correction. Reuse them when present so regeneration does not require
+    # unrelated PDF/geospatial dependencies or alter upstream products.
+    if RULEBOOK.exists(): rb=pd.read_csv(RULEBOOK,low_memory=False)
+    else: rb=rulebook(); rb.to_csv(RULEBOOK,index=False)
     ped=pd.read_csv(PEDONS,low_memory=False)
-    geo=spatial_assign(ped); geo.to_csv(OUT_DIR/"neon_kssl_pedon_lrr_mlra.csv",index=False)
-    cw=crosswalk(rb); cw.to_csv(OUT_DIR/"nrcs_v93_indicator_data_crosswalk.csv",index=False)
+    if GEO_ASSIGNMENTS.exists(): geo=pd.read_csv(GEO_ASSIGNMENTS,low_memory=False)
+    else: geo=spatial_assign(ped); geo.to_csv(GEO_ASSIGNMENTS,index=False)
+    if DATA_CROSSWALK.exists(): cw=pd.read_csv(DATA_CROSSWALK,low_memory=False)
+    else: cw=crosswalk(rb); cw.to_csv(DATA_CROSSWALK,index=False)
     master=pd.read_csv(MASTER,low_memory=False)
+    structured_taxonomy = ped[[
+        "user_pedon_id",
+        "current_taxonomic_order",
+        "current_taxonomic_suborder",
+        "current_taxonomic_great_group",
+    ]].drop_duplicates("user_pedon_id").rename(columns={
+        "current_taxonomic_order": "nasis_taxonomic_order",
+        "current_taxonomic_suborder": "nasis_taxonomic_suborder",
+        "current_taxonomic_great_group": "nasis_taxonomic_great_group",
+    })
+    master = master.merge(
+        structured_taxonomy,
+        on="user_pedon_id",
+        how="left",
+        validate="many_to_one",
+    )
     eval_rows=[]
     for _,p in geo.iterrows():
         d=profile_rows(master,p.user_pedon_id)
@@ -493,9 +558,5 @@ The following examples show the exact normalized NASIS horizon fields supplied t
 
 if __name__ == "__main__":
     main()
-
-
-
-
 
 
